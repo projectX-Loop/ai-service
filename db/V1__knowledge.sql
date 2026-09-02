@@ -1,6 +1,6 @@
 -- KAN-16 · knowledge_* 스키마 (ai-service 소유)
 -- 진실 출처: 이 파일을 backend Flyway(db/migration/)에 그대로 복사한다. 여기 사본은 로컬 개발용.
--- 대상: PostgreSQL 15+ / pgvector 0.5+ (RDS는 rds.allowed_extensions에 vector 포함 필요)
+-- 대상: PostgreSQL 16 / pgvector 0.5+ (RDS는 rds.allowed_extensions에 vector 포함 필요)
 
 CREATE EXTENSION IF NOT EXISTS vector;
 

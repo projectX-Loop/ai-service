@@ -1,86 +1,115 @@
 {
+  "status": "OK",
   "meta": {
-    "data_period": { "start": "2019-07-01", "end": "2026-06-30" },
-    "assumptions": [
-      "배당 재투자 가정",
-      "거래비용 편도 0.015% 반영",
-      "세금 미반영"
+    "assumptions_version": "v0.2",
+    "data_version": "2026-09-02",
+    "data_hash": "sha256:fa84100c",
+    "window": {
+      "start": "2021-08",
+      "end": "2026-07",
+      "months": 60
+    },
+    "assets_used": [
+      {
+        "code": "KR_EQ",
+        "display_name": "국내 주식 (KODEX 200)",
+        "instrument": "069500"
+      },
+      {
+        "code": "US_EQ",
+        "display_name": "해외 주식 (SPY × USD/KRW)",
+        "instrument": "SPY"
+      },
+      {
+        "code": "KR_BOND",
+        "display_name": "국내 채권 (KODEX 국고채3년)",
+        "instrument": "114260"
+      }
     ],
-    "asset_universe": "사전 정의 ETF 3종 + 현금성 1종",
-    "generated_at": "2026-09-02"
+    "data_basis": "실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지)",
+    "safe_rate_annual_pct": 2.962167,
+    "generated_at": "2026-09-02T00:00:00Z",
+    "warnings": []
   },
-  "user_profile": {
-    "goal_amount": 50000000,
-    "goal_period_months": 60,
-    "initial_investment": 10000000,
-    "monthly_contribution": 500000,
-    "risk_profile": "MODERATE"
+  "derived": {
+    "propensity_label": "중립형",
+    "invest_share_overall_pct": 54.35,
+    "plan_excluded_amount": 3600000
   },
-  "portfolio": {
-    "target_weights": [
-      { "asset": "DOMESTIC_EQUITY", "weight": 0.5 },
-      { "asset": "FOREIGN_EQUITY", "weight": 0.3 },
-      { "asset": "BOND", "weight": 0.2 }
-    ]
-  },
-  "selected_frequency": "QUARTERLY",
-  "results": [
-    {
-      "frequency": "MONTHLY",
-      "final_value": 46820000,
-      "goal_gap": -3180000,
-      "goal_gap_rate": -0.0636,
-      "additional_monthly_required": 51000,
-      "expected_months_to_goal": 66,
-      "cumulative_cost": 680000,
-      "trade_count": 60,
-      "risk_metrics": {
-        "annual_volatility": 0.142,
-        "max_drawdown": -0.238
+  "focus": "Q",
+  "per_period": {
+    "M": {
+      "trajectory": [
+        {
+          "month": 1,
+          "total": 10600000
+        },
+        {
+          "month": 60,
+          "total": 70662655
+        }
+      ],
+      "cum_cost": 39878,
+      "risk": {
+        "mdd_pct": 7.63,
+        "vol_annual_pct": 17.72,
+        "max_drift_pct": 12.25
       },
-      "value_series": [
-        { "date": "2021-09-30", "value": 13850000 },
-        { "date": "2023-09-30", "value": 25400000 },
-        { "date": "2026-06-30", "value": 46820000 }
-      ]
+      "gap": {
+        "fv_total": 70662655,
+        "shortfall": -20662655,
+        "extra_monthly_required": 0,
+        "months_extension": 0
+      }
     },
-    {
-      "frequency": "QUARTERLY",
-      "final_value": 47150000,
-      "goal_gap": -2850000,
-      "goal_gap_rate": -0.057,
-      "additional_monthly_required": 45000,
-      "expected_months_to_goal": 65,
-      "cumulative_cost": 245000,
-      "trade_count": 20,
-      "risk_metrics": {
-        "annual_volatility": 0.145,
-        "max_drawdown": -0.251
+    "Q": {
+      "trajectory": [
+        {
+          "month": 1,
+          "total": 10600000
+        },
+        {
+          "month": 60,
+          "total": 69755097
+        }
+      ],
+      "cum_cost": 26310,
+      "risk": {
+        "mdd_pct": 8.5,
+        "vol_annual_pct": 18.04,
+        "max_drift_pct": 13.58
       },
-      "value_series": [
-        { "date": "2021-09-30", "value": 13920000 },
-        { "date": "2023-09-30", "value": 25610000 },
-        { "date": "2026-06-30", "value": 47150000 }
-      ]
+      "gap": {
+        "fv_total": 69755097,
+        "shortfall": -19755097,
+        "extra_monthly_required": 0,
+        "months_extension": 0
+      }
     },
-    {
-      "frequency": "SEMIANNUAL",
-      "final_value": 46690000,
-      "goal_gap": -3310000,
-      "goal_gap_rate": -0.0662,
-      "additional_monthly_required": 53000,
-      "expected_months_to_goal": 67,
-      "cumulative_cost": 128000,
-      "trade_count": 10,
-      "risk_metrics": {
-        "annual_volatility": 0.151,
-        "max_drawdown": -0.267
+    "H": {
+      "trajectory": [
+        {
+          "month": 1,
+          "total": 10600000
+        },
+        {
+          "month": 60,
+          "total": 70873005
+        }
+      ],
+      "cum_cost": 25917,
+      "risk": {
+        "mdd_pct": 9.3,
+        "vol_annual_pct": 18.64,
+        "max_drift_pct": 23.72
       },
-      "value_series": [
-        { "date": "2021-09-30", "value": 13780000 },
-        { "date": "2023-09-30", "value": 25230000 },
-        { "date": "2026-06-30", "value": 46690000 }
-      ]
+      "gap": {
+        "fv_total": 70873005,
+        "shortfall": -20873005,
+        "extra_monthly_required": 0,
+        "months_extension": 0
+      }
     }
-  ]
+  },
+  "goal_amount": 50000000
 }

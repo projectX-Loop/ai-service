@@ -16,36 +16,36 @@ from explainer import client as llm
 from explainer.guardrail import validate
 from explainer.schema import Explanation, SimulationInput
 
-FREQ_KO = {"MONTHLY": "월별", "QUARTERLY": "분기별", "SEMIANNUAL": "반기별"}
+PERIOD_KO = {"M": "월별", "Q": "분기별", "H": "반기별"}
 
 
 def render(exp: Explanation) -> str:
+    hp = exp.highlighted_period.value if exp.highlighted_period else None
     lines = [
         f"■ 요약        {exp.summary.text}",
         "",
-        f"■ 목표와의 거리",
-        f"  {exp.goal_gap.text}",
-        "",
-        f"■ 주기별 비교  (선택: {FREQ_KO[exp.highlighted_frequency.value]})",
+        f"■ 주기별 장단점  (강조: {PERIOD_KO.get(hp, '없음')})",
     ]
-    for fc in exp.frequency_comparison:
-        lines.append(f"  · {FREQ_KO[fc.frequency.value]}")
-        lines.append(f"      {fc.observation}")
-        lines.append(f"      {fc.tradeoff}")
+    for p in ("M", "Q", "H"):
+        pc = exp.per_period_pros_cons.get(p) or exp.per_period_pros_cons.get(type(exp.highlighted_period)(p)) if exp.highlighted_period else None
+        pc = pc or next((v for k, v in exp.per_period_pros_cons.items() if k.value == p), None)
+        if pc is None:
+            continue
+        lines.append(f"  · {PERIOD_KO[p]}")
+        for c in pc.pros:
+            lines.append(f"      + {c.text}")
+        for c in pc.cons:
+            lines.append(f"      − {c.text}")
     lines += ["", "■ 위험 설명"]
-    for rf in exp.risk_factors:
-        lines.append(f"  · {rf.title}")
-        lines.append(f"      {rf.detail}")
+    for r in exp.risks:
+        lines.append(f"  · {r.title}")
+        lines.append(f"      {r.detail}")
     lines += ["", "■ 권장 행동"]
     for na in exp.next_actions:
         lines.append(f"  · [{na.adjustable_input.value}] {na.text}")
-    lines += [
-        "",
-        "■ 데이터 기준",
-        f"  기간: {exp.data_basis.period}",
-        f"  가정: {' / '.join(exp.data_basis.assumptions)}",
-        f"  {exp.data_basis.disclaimer}",
-    ]
+    lines += ["", "■ 데이터 기준", f"  {exp.assumptions_note.text}"]
+    if exp.retrieved_refs:
+        lines += ["", f"■ 인용 청크  {', '.join(exp.retrieved_refs)}"]
     return "\n".join(lines)
 
 
