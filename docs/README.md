@@ -13,15 +13,18 @@ Jira · Notion   ← 유일한 기준(SSOT). 요구사항·계약·ERD·회의 �
 
 | 문서 | 티켓 | 한 줄 | 구현 파일 | 언제 보나 |
 |---|---|---|---|---|
+| [KAN-04-API-명세.md](KAN-04-API-명세.md) | KAN-4 (공동) | **호출 흐름·계산/설명 분리 근거·공개 API 제안·KAN-9 대조표** | — (Spring은 도윤) | "전체가 어떻게 이어지나", "KAN-9와 맞나" |
 | [KAN-12-AI-응답규격.md](KAN-12-AI-응답규격.md) | KAN-12 | AI 설명의 **입출력 스키마·프롬프트·금지 규칙·검증 체크리스트 C1~C15** | `schema.py` `prompt.py` `guardrail.py` | "AI가 뭘 받고 뭘 내놓나", "guardrail이 뭘 검사하나" |
 | [KAN-13-테스트세트.md](KAN-13-테스트세트.md) | KAN-13 | 품질 테스트 **케이스 6종 + 공통 검사 A1~A14** | `tests/test_guardrail.py` `fixtures/` | "이 응답이 통과인지 어떻게 판정하나" |
-| [KAN-16-지식저장소.md](KAN-16-지식저장소.md) | KAN-16·17 | **청킹·임베딩·인덱스 선택 근거**, 검색 결합 | `knowledge/*.py` `db/` `scripts/` | "왜 600자, 왜 HNSW, 청크는 어떻게 고르나" |
+| [KAN-15-지식문서.md](KAN-15-지식문서.md) | KAN-15 | **개념 8개 ↔ 문서 ↔ 출처·라이선스 매핑**, 작성 규칙 | `../knowledge/*.md` | "이 개념의 출처가 뭐냐", "문서를 어떻게 쓰나" |
+| [KAN-16-지식저장소.md](KAN-16-지식저장소.md) | KAN-16 | **청킹·임베딩·인덱스 선택 근거**, 검색 결합 | `knowledge/*.py` `db/` `scripts/` | "왜 600자, 왜 HNSW, 청크는 어떻게 고르나" |
+| [KAN-17-내부HTTP계약.md](KAN-17-내부HTTP계약.md) | KAN-17 | **`POST /rag/answer` 요청·응답 규약**, 예시 JSON 정상·실패 | `api.py` `client.py` `Dockerfile` | "Spring에서 어떻게 부르나", "status가 뭐가 있나" |
 
 ## 이 폴더에 없는 것
 
 | 찾는 것 | 어디 |
 |---|---|
-| 요구사항·수용 기준·진행 상태 | Jira `KAN-12` `KAN-13` `KAN-15` `KAN-16` `KAN-17` |
+| 요구사항·수용 기준·진행 상태 | Jira `KAN-4` `KAN-12` `KAN-13` `KAN-15` `KAN-16` `KAN-17` |
 | 시뮬레이터 입출력 계약 (SSOT) | Notion **Kan-9** — 이 문서들은 §5·§7을 따른다 |
 | PRD · ERD · 인프라 구조 | Notion 프로젝트x 워크스페이스 |
 | 실행 방법 | [../README.md](../README.md) |
