@@ -1,10 +1,10 @@
 ---
 source_id: concept/rebalancing
 title: 리밸런싱
-source_url: (KAN-15에서 확정)
-published_at:
-license: (KAN-15에서 확인)
-concept_tags: rebalancing, target_weights
+source_url: https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246
+published_at: 2026-09-02
+license: 팀 내부 문서 (KAN-9 v0.2 §4.2 리밸런싱 규칙). 자체 작성. 용어 출처 TODO(성종현)
+concept_tags: rebalancing, target_weights, max_drift_pct
 ---
 
 ## 정의

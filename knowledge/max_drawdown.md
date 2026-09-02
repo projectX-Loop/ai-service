@@ -1,10 +1,10 @@
 ---
 source_id: concept/max_drawdown
 title: 최대 낙폭 (MDD)
-source_url: (KAN-15에서 확정 — 금융투자협회/한국거래소 자료 예정)
-published_at:
-license: (KAN-15에서 확인)
-concept_tags: max_drawdown, risk
+source_url: https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246
+published_at: 2026-09-02
+license: 팀 내부 문서 (KAN-9 v0.2 §4.4 mdd_pct 정의). 정의 문장은 자체 작성. 용어 출처 TODO(성종현) 금융투자협회 URL 보강
+concept_tags: max_drawdown, risk, mdd_pct
 ---
 
 ## 정의

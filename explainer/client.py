@@ -19,6 +19,7 @@ from google.genai import types
 
 from . import prompt
 from .guardrail import Report, validate
+from .knowledge.retrieve import Retriever
 from .schema import Explanation, SimulationInput
 
 # 모델 ID는 바뀌므로 환경변수로 덮을 수 있게 둔다.
@@ -43,6 +44,7 @@ class ExplainOutcome:
     explanation: Explanation
     report: Report
     attempts: int
+    chunk_refs: list[str]          # 프롬프트에 넣은 청크 참조 (KAN-17 retrieved_refs 원천)
 
 
 def _config() -> types.GenerateContentConfig:
@@ -70,10 +72,25 @@ def _parse(response) -> Explanation:
     return Explanation.model_validate(json.loads(text))
 
 
-def explain(source: SimulationInput, *, client: genai.Client | None = None) -> ExplainOutcome:
+def explain(source: SimulationInput, *, client: genai.Client | None = None,
+            retriever: Retriever | None = None) -> ExplainOutcome:
+    """KAN-17 결합: 결과 JSON → 개념 청크 검색 → 프롬프트 → Gemini → 가드레일(청크 실존 포함)."""
     client = client or genai.Client(api_key=_api_key())
+
+    # 검색은 결과 필드 기반(결정론). 실패해도 설명 자체는 진행한다 — 청크 없이.
+    chunks: list[dict] = []
+    chunk_exists = None
+    if retriever is not None:
+        try:
+            found = retriever.retrieve(source)
+            chunks = [{"ref": c.ref, "title": c.title, "location": c.location, "content": c.content}
+                      for c in found]
+            chunk_exists = retriever.exists
+        except Exception:
+            chunks, chunk_exists = [], None
+
     contents: list[types.Content] = [
-        types.Content(role="user", parts=[types.Part(text=prompt.build_user_message(source))])
+        types.Content(role="user", parts=[types.Part(text=prompt.build_user_message(source, chunks))])
     ]
 
     last_report: Report | None = None
@@ -86,9 +103,9 @@ def explain(source: SimulationInput, *, client: genai.Client | None = None) -> E
             raise ExplanationUnavailable(str(e)) from e
 
         explanation = _parse(response)
-        report = validate(explanation, source)
+        report = validate(explanation, source, chunk_exists=chunk_exists)
         if report.passed:
-            return ExplainOutcome(explanation, report, attempt)
+            return ExplainOutcome(explanation, report, attempt, [c["ref"] for c in chunks])
 
         last_report = report
         if attempt < MAX_ATTEMPTS:

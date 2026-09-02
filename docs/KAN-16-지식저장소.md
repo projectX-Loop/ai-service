@@ -1,7 +1,7 @@
 # KAN-16 — pgvector 지식 저장소 및 임베딩 파이프라인
 
 > 담당 성종현 · 선행 KAN-15, KAN-3 · 후속 KAN-17
-> **상태 (2026-09-02)**: 파이프라인 구현 완료. DB·임베딩 실행 검증은 미완 (Docker·키 없음)
+> **상태 (2026-09-02 밤)**: 파이프라인 구현 완료 + **KAN-17 결합 완료** (`retrieve.py`). 개념 문서 8/8. DB·임베딩 실행 검증은 미완 (Docker·키 없음) — 파일 폴백으로 전체 파이프라인은 돈다
 
 ## 구조
 
@@ -37,9 +37,15 @@ KAN-15 문서는 개념 하나당 짧은 설명(정의·왜 보는가·주의)�
 `knowledge_document.content_hash`(sha256 원문)가 같으면 청크를 건드리지 않는다.
 바뀌었으면 그 문서의 청크를 전부 지우고 다시 넣는다. 그래서 **재실행 시 청크 수 불변**이 보장된다.
 
-### evidence 참조 형식 — `chunk:<source_id>#<chunk_index>`
+### evidence 참조 형식 — `chunk:<source_id>#<idx>`
 BIGSERIAL id는 재적재하면 바뀐다. `source_id#index`는 안정적이라 AI 응답의 evidence에 이걸 쓴다.
 guardrail C3 확장은 `store.chunk_exists(ref)`로 실존을 확인한다.
+
+### 결합 (KAN-17) — `retrieve.py`
+`concept_tags_for(결과)`가 결과 JSON의 필드로부터 개념 태그를 **결정론적으로** 뽑는다
+(`mdd_pct` 있으면 `max_drawdown`, `cum_cost` 있으면 `transaction_cost`, `rebalancing`·`disclaimer`는 항상).
+`FileRetriever`(DB 없음)와 `DbRetriever`(pgvector)가 같은 인터페이스. `client.explain(retriever=…)`가
+청크를 프롬프트에 넣고, 가드레일 C3에 `retriever.exists`를 주입해 청크 실존을 검사한다.
 
 ### 검색 경로 두 가지를 함수 하나로
 - **질의 검색** (KAN-16 문구): 질의 임베딩 → 코사인 top-k

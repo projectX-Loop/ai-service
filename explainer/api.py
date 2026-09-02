@@ -21,11 +21,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from . import client as llm
+from .knowledge.retrieve import default_retriever
 from .schema import Explanation, SimulationInput
 
 log = logging.getLogger("ai-service")
 
 app = FastAPI(title="ai-service", version="0.1.0")
+_retriever = default_retriever()      # DATABASE_URL 있으면 pgvector, 없으면 knowledge/*.md
 
 
 class AnswerResponse(BaseModel):
@@ -34,6 +36,7 @@ class AnswerResponse(BaseModel):
     status: str = Field(description="OK | EXPLANATION_REJECTED | EXPLANATION_UNAVAILABLE")
     explanation: Explanation | None = None
     attempts: int | None = Field(default=None, description="모델 호출 횟수")
+    retrieved_refs: list[str] = Field(default_factory=list, description="프롬프트에 넣은 지식 청크 참조 (KAN-17)")
     violations: list[str] = Field(default_factory=list, description="가드레일 위반 내역")
     message: str | None = Field(default=None, description="Spring이 사용자 문구로 바꿀 사유")
 
@@ -44,6 +47,7 @@ def health() -> dict:
         "status": "ok",
         "model": llm.MODEL,
         "credentials": llm.has_credentials(),
+        "retriever": type(_retriever).__name__,
     }
 
 
@@ -65,7 +69,7 @@ def answer(payload: dict) -> JSONResponse:
 
     # 2) 설명 생성 + 가드레일. 실패해도 Spring이 결과 화면은 그릴 수 있어야 한다.
     try:
-        outcome = llm.explain(source)
+        outcome = llm.explain(source, retriever=_retriever)
     except llm.ExplanationRejected as e:
         log.warning("guardrail rejected: %s", e)
         return JSONResponse(
@@ -96,6 +100,7 @@ def answer(payload: dict) -> JSONResponse:
             "status": "OK",
             "explanation": outcome.explanation.model_dump(mode="json"),
             "attempts": outcome.attempts,
+            "retrieved_refs": outcome.chunk_refs,
             "violations": [str(v) for v in outcome.report.warnings],
             "message": None,
         },

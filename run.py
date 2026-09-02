@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 from explainer import client as llm
+from explainer.knowledge.retrieve import default_retriever
 from explainer.guardrail import validate
 from explainer.schema import Explanation, SimulationInput
 
@@ -67,7 +68,7 @@ def main() -> int:
                   file=sys.stderr)
             return 2
         try:
-            outcome = llm.explain(source)
+            outcome = llm.explain(source, retriever=default_retriever())
         except llm.ExplanationRejected as e:
             print("EXPLANATION_REJECTED — 가드레일 2회 위반", file=sys.stderr)
             for v in e.report.errors:
@@ -77,7 +78,7 @@ def main() -> int:
             print(f"EXPLANATION_UNAVAILABLE — {e}", file=sys.stderr)
             return 3
         exp, report = outcome.explanation, outcome.report
-        print(f"(시도 {outcome.attempts}회)\n")
+        print(f"(시도 {outcome.attempts}회 · 청크 {len(outcome.chunk_refs)}개)\n")
 
     print(render(exp))
     print()

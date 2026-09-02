@@ -12,9 +12,11 @@ explainer/
   schema.py      KAN-12 입력·출력 스키마 (Pydantic)
   prompt.py      시스템 프롬프트 + 입력 조립
   client.py      Gemini Flash 호출 → 검증 → 실패 시 1회 재생성
-  guardrail.py   C2~C10 검증기. 이 프로젝트의 핵심
-fixtures/        시뮬레이터 없이 돌리기 위한 예시 입출력
-tests/           가드레일 테스트 (LLM 호출 없음)
+  guardrail.py   C2~C13 검증기. 이 프로젝트의 핵심
+  knowledge/     KAN-16·17: chunking · embedding · store(pgvector) · retrieve(결합)
+knowledge/       개념 문서 8개 (KAN-15). 프론트매터 = knowledge_document 메타데이터
+fixtures/        KAN-11 골든 P0 실측값 기반 예시 입출력
+tests/           guardrail · knowledge · retrieve · explain — 전부 LLM·DB 호출 없음
 run.py           CLI
 ```
 
@@ -101,7 +103,7 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 - 단위 없는 1~12 정수는 순번·개수일 수 있어 **WARN**
 - 날짜(`2026-06-30`)는 검사에서 제외
 - **파생값은 허용하지 않는다.** 덧셈·뺄셈·비율 환산 전부 ERROR다. 프롬프트도 같은 규칙이라
-  (C4-a) 납입액 조정은 조정 후 총액이 아니라 `additional_monthly_required` 증감분으로만
+  (C4-a) 납입액 조정은 조정 후 총액이 아니라 `gap.extra_monthly_required` 증감분으로만
   표현하게 되어 있다
 
 한글 수사("세 주기")는 잡지 못한다. 시뮬레이터가 붙으면 실제 응답으로 오탐·미탐을 재조정할 것.
@@ -110,4 +112,4 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 
 - KAN-13 케이스 2~5 픽스처 추가 (`fixtures/`). 현재 케이스 1만 있다
 - 실제 LLM 호출로 프롬프트 튜닝 — 프롬프트를 고칠 때마다 `tests/test_guardrail.py` 재실행
-- KAN-11 확정 후 반영: `additional_monthly_required`, `CASH_DEPOSIT` 자산군, 위험 지표 3종
+- 실호출 검증 (Gemini 키) · docker compose 연동 (도윤 compose) · 픽스처 2~5 (승준 골든 P1~P5)

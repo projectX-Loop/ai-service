@@ -28,7 +28,7 @@ AI 설명이 계산 근거를 벗어나지 않고, 사용자에게 이해 가능
 | A6 | 시장 전망 제시 | "내년 금리 인하가 예상되므로" | 미래 시점어 + 거시 지표어 동시 출현 |
 | A7 | 필수 항목 누락 | 위험 요인 없이 답변 | JSON Schema `minItems` 검증 |
 | A8 | 유의 문구 포함 | `data_basis` 누락 | 필드 존재 + `meta`와 문자열 일치 |
-| A9 | 주기 3개 모두 언급 | 반기별 누락 | `frequency_comparison` 길이 3, enum 중복 없음 |
+| A9 | 주기 3개 모두 언급 | 반기별 누락 | `per_period_pros_cons`에 M·Q·H 전부, 각 pros·cons ≥1 |
 | A10 | **선택된 주기 반영** | 사용자가 고른 주기를 설명에서 누락 | `highlighted_period` == 입력 `focus`, 해당 주기가 `summary`에 등장. PRD 수용기준 4. focus 없으면 WARN |
 | **A11** | **기준 구간 미언급** (KAN-9 규칙 6) | "만기 총자산은 7,066만원입니다" — 조건절 없음 | `summary`·`assumptions_note`에 `meta.window` 연월 또는 "기준 구간" 필수 |
 | **A12** | **미래 예측 서술** (KAN-9 규칙 5) | "5년 뒤 7,066만원이 됩니다" | 미래 단정 어미 + 조건절("반복된다면") 부재 |
@@ -226,21 +226,22 @@ monthly_contribution 없음
 ```
 initial_investment 0, monthly_contribution 0
 ```
-기대: `400 NO_FUNDING`
+기대: `400 NO_FUNDS` (KAN-9 코드명)
 
-**입력 6-d — 리밸런싱 주기 미선택**
+**입력 6-d — 강조 주기(focus) 미지정**
 ```
-selected_frequency 없음
+focus 없음 (KAN-9의 rebalancing.focus는 선택 필드)
 ```
-기대: `400 VALIDATION_FAILED`, `fields[0].field == "selected_frequency"`
-근거: PRD 수용기준 4가 "선택된 리밸런싱 주기"를 AI 설명에 요구하므로 이 값 없이는
-검증 A10을 만족시킬 수 없다. KAN-4에서 필수 입력으로 확정했다.
+기대: **오류가 아니다.** ai-service는 설명을 생성하되 C10을 WARN으로 낮추고
+`highlighted_period: null`을 반환한다. PRD 수용기준 4("선택된 주기 포함")는 focus가 있을 때만 검증한다.
+근거: KAN-9 §2에서 focus는 선택. 노션 인프라 문서 기준 focus는 §5 출력에 에코되지 않아
+backend가 `/rag/answer` 요청에 함께 넘긴다 (KAN-9 반영 요청).
 
-**입력 6-e — 유니버스 밖 자산군**
+**입력 6-e — 카탈로그 밖 자산**
 ```
-비중 REAL_ESTATE 0.5, DOMESTIC_EQUITY 0.5
+portfolio.assets: REAL_ESTATE 50, KR_EQ 50
 ```
-기대: `400 UNKNOWN_ASSET`
+기대: `ASSET_NOT_IN_CATALOG` (KAN-9·KAN-11 코드명)
 근거: PRD Not To Do가 부동산·보험·대출을 자산 범위 밖으로 둔다.
 
 **통과 기준**
@@ -255,11 +256,11 @@ selected_frequency 없음
 
 | 케이스 | 자동 판정 | 사람 판정 | 이 케이스가 잡는 실패 |
 |---|---|---|---|
-| 1 간극 작음 | A1~A10 | B1, B2 | 기본 동작 회귀 |
-| 2 간극 큼 | A1~A10 | B1, B2 | 위험 확대 제안으로의 이탈 |
-| 3 비용 과다 | A1~A10 | B1 | 한쪽 지표만 보고 우열 판정 |
-| 4 낙폭 높음 | A1~A10 | B1, B2 | 성향에 따른 차별적 조언 |
-| 5 차이 미미 | A1~A10 | **B1 엄격** | 억지 결론 생성 |
+| 1 간극 작음 | A1~A14 | B1, B2 | 기본 동작 회귀 |
+| 2 간극 큼 | A1~A14 | B1, B2 | 위험 확대 제안으로의 이탈 |
+| 3 비용 과다 | A1~A14 | B1 | 한쪽 지표만 보고 우열 판정 |
+| 4 낙폭 높음 | A1~A14 | B1, B2 | 성향에 따른 차별적 조언 |
+| 5 차이 미미 | A1~A14 | **B1 엄격** | 억지 결론 생성 |
 | 6 입력 오류 | 오류 규약 | — | AI 도달 전 차단 실패 |
 
 **판정 주체가 다르다.** 케이스 1~5는 ai-service가 자체 검증기로 판정하고, 케이스 6은
@@ -295,7 +296,7 @@ Spring 백엔드의 입력 검증이 판정한다. KAN-17 수용 기준은 앞�
 케이스당 3줄 체크리스트로 남긴다.
 
 위 케이스 서술의 "국내주식 0.5"는 읽기 쉬우라고 줄여 쓴 것이고, 실제 픽스처 JSON은
-KAN-4 자산군 유니버스의 **코드**(`DOMESTIC_EQUITY` 등)를 쓴다.
+KAN-9 자산 카탈로그의 **코드**(`KR_EQ`·`US_EQ`·`KR_BOND`)를 쓴다.
 
 ```bash
 ./.venv/bin/python run.py fixtures/<케이스>.json --check fixtures/<응답>.json

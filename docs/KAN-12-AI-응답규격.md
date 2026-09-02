@@ -30,8 +30,8 @@ AI가 숫자를 말할 때마다 그 값이 입력 JSON의 어느 경로에서 �
 
 | 말하는 것 | 출처 | `evidence` 표기 |
 |---|---|---|
-| **수치·상태** | 시뮬레이션 결과 JSON **에서만** | `/results/1/goal_gap` |
-| **개념·가정 설명** | 검색된 지식 청크 **에서만** | `chunk:<청크 id>` |
+| **수치·상태** | 시뮬레이션 결과 JSON **에서만** | `/per_period/Q/gap/shortfall` |
+| **개념·가정 설명** | 검색된 지식 청크 **에서만** | `chunk:<source_id>#<idx>` |
 
 KAN-15 목적 문장이 이 경계를 그대로 정의한다 —
 "AI 설명에서 개념·가정 설명은 RAG가 담당한다(숫자·상태는 시뮬레이터 결과에서만 인용)."
@@ -331,7 +331,7 @@ KAN-9 §7 금지 규칙 7개를 검증 가능한 항목으로 펼쳤다. **이 �
 | 출력 `retrieved_refs` — 문장별 chunk evidence의 합집합 | ✅ 반영. 불일치 시 WARN |
 | C3 — 청크 실존 확인 | ✅ 형식 검사. DB 조회는 `validate(chunk_exists=…)`로 주입 |
 | C13 — 청크만 근거인 문장에 수치 금지 | ✅ 반영 |
-| `client.explain()`이 `store.search()`를 호출해 청크를 프롬프트에 넣는 결합 | ❌ **미완** — KAN-17 다음 작업 |
+| `client.explain()`이 검색 청크를 프롬프트에 넣고 `chunk_exists`로 C3 검증 | ✅ **반영** — `knowledge/retrieve.py`. 결과 필드 → 개념 태그(결정론) → 청크. DB 없으면 `knowledge/*.md` 파일 폴백. `tests/test_explain.py` 10/10 |
 
 ## 확정 대기
 
