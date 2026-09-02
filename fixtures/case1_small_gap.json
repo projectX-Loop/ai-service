@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "data_period": { "start": "2019-07-01", "end": "2026-06-30" },
+    "assumptions": [
+      "배당 재투자 가정",
+      "거래비용 편도 0.015% 반영",
+      "세금 미반영"
+    ],
+    "asset_universe": "사전 정의 ETF 3종 + 현금성 1종",
+    "generated_at": "2026-09-02"
+  },
+  "user_profile": {
+    "goal_amount": 50000000,
+    "goal_period_months": 60,
+    "initial_investment": 10000000,
+    "monthly_contribution": 500000,
+    "risk_profile": "MODERATE"
+  },
+  "portfolio": {
+    "target_weights": [
+      { "asset": "DOMESTIC_EQUITY", "weight": 0.5 },
+      { "asset": "FOREIGN_EQUITY", "weight": 0.3 },
+      { "asset": "BOND", "weight": 0.2 }
+    ]
+  },
+  "selected_frequency": "QUARTERLY",
+  "results": [
+    {
+      "frequency": "MONTHLY",
+      "final_value": 46820000,
+      "goal_gap": -3180000,
+      "goal_gap_rate": -0.0636,
+      "additional_monthly_required": 51000,
+      "expected_months_to_goal": 66,
+      "cumulative_cost": 680000,
+      "trade_count": 60,
+      "risk_metrics": {
+        "annual_volatility": 0.142,
+        "max_drawdown": -0.238
+      },
+      "value_series": [
+        { "date": "2021-09-30", "value": 13850000 },
+        { "date": "2023-09-30", "value": 25400000 },
+        { "date": "2026-06-30", "value": 46820000 }
+      ]
+    },
+    {
+      "frequency": "QUARTERLY",
+      "final_value": 47150000,
+      "goal_gap": -2850000,
+      "goal_gap_rate": -0.057,
+      "additional_monthly_required": 45000,
+      "expected_months_to_goal": 65,
+      "cumulative_cost": 245000,
+      "trade_count": 20,
+      "risk_metrics": {
+        "annual_volatility": 0.145,
+        "max_drawdown": -0.251
+      },
+      "value_series": [
+        { "date": "2021-09-30", "value": 13920000 },
+        { "date": "2023-09-30", "value": 25610000 },
+        { "date": "2026-06-30", "value": 47150000 }
+      ]
+    },
+    {
+      "frequency": "SEMIANNUAL",
+      "final_value": 46690000,
+      "goal_gap": -3310000,
+      "goal_gap_rate": -0.0662,
+      "additional_monthly_required": 53000,
+      "expected_months_to_goal": 67,
+      "cumulative_cost": 128000,
+      "trade_count": 10,
+      "risk_metrics": {
+        "annual_volatility": 0.151,
+        "max_drawdown": -0.267
+      },
+      "value_series": [
+        { "date": "2021-09-30", "value": 13780000 },
+        { "date": "2023-09-30", "value": 25230000 },
+        { "date": "2026-06-30", "value": 46690000 }
+      ]
+    }
+  ]
+}

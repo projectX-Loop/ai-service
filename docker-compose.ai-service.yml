@@ -1,0 +1,17 @@
+# 도윤의 docker compose에 병합할 조각 (KAN-17)
+# 백엔드 compose에 그대로 옮겨 붙이면 backend → ai-service 호출이 됩니다.
+services:
+  ai-service:
+    build: ./ai-service          # 저장소 위치에 맞게 수정
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      # KAN-16에서 pgvector 붙일 때 사용
+      DATABASE_URL: ${DATABASE_URL:-}
+    ports:
+      - "8000:8000"              # 내부 호출만이면 제거 가능
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3

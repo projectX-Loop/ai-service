@@ -1,0 +1,76 @@
+{
+  "highlighted_frequency": "QUARTERLY",
+  "summary": {
+    "text": "세 주기 모두 목표에 못 미치며, 분기별이 285만원 차이로 가장 근접합니다.",
+    "evidence": [
+      "/results/1/goal_gap"
+    ]
+  },
+  "goal_gap": {
+    "text": "목표 5,000만원 대비 분기별 리밸런싱은 4,715만원으로 285만원(5.7%) 부족합니다. 월 납입액을 4만 5천원 늘리면 이 차이를 메울 수 있습니다.",
+    "evidence": [
+      "/user_profile/goal_amount",
+      "/results/1/final_value",
+      "/results/1/goal_gap",
+      "/results/1/additional_monthly_required"
+    ]
+  },
+  "frequency_comparison": [
+    {
+      "frequency": "MONTHLY",
+      "observation": "누적 거래비용 68만원으로 가장 높습니다.",
+      "tradeoff": "대신 최대낙폭 -23.8%로 세 주기 중 가장 작습니다.",
+      "evidence": [
+        "/results/0/cumulative_cost",
+        "/results/0/risk_metrics/max_drawdown"
+      ]
+    },
+    {
+      "frequency": "QUARTERLY",
+      "observation": "최종 자산 4,715만원으로 가장 높습니다.",
+      "tradeoff": "거래비용 24.5만원, 최대낙폭 -25.1%입니다.",
+      "evidence": [
+        "/results/1/final_value",
+        "/results/1/cumulative_cost",
+        "/results/1/risk_metrics/max_drawdown"
+      ]
+    },
+    {
+      "frequency": "SEMIANNUAL",
+      "observation": "거래비용 12.8만원으로 가장 낮습니다.",
+      "tradeoff": "대신 최대낙폭 -26.7%로 가장 큽니다.",
+      "evidence": [
+        "/results/2/cumulative_cost",
+        "/results/2/risk_metrics/max_drawdown"
+      ]
+    }
+  ],
+  "risk_factors": [
+    {
+      "title": "최대낙폭 구간의 심리적 부담",
+      "detail": "분기별 기준 투자 기간 중 자산이 -25.1%까지 줄어든 시점이 있었습니다.",
+      "evidence": [
+        "/results/1/risk_metrics/max_drawdown"
+      ]
+    }
+  ],
+  "next_actions": [
+    {
+      "adjustable_input": "MONTHLY_CONTRIBUTION",
+      "text": "월 납입액을 4만 5천원 늘린 조건으로 다시 계산해볼 수 있습니다.",
+      "evidence": [
+        "/user_profile/monthly_contribution",
+        "/results/1/additional_monthly_required"
+      ]
+    }
+  ],
+  "data_basis": {
+    "period": "2019-07-01 ~ 2026-06-30",
+    "assumptions": [
+      "배당 재투자 가정",
+      "거래비용 편도 0.015% 반영",
+      "세금 미반영"
+    ],
+    "disclaimer": "과거 데이터 기반 시뮬레이션 결과이며 미래 수익을 보장하지 않습니다. 투자 자문이 아닙니다."
+  }
+}
