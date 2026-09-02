@@ -1,13 +1,36 @@
 # 도윤의 docker compose에 병합할 조각 (KAN-17)
 # 백엔드 compose에 그대로 옮겨 붙이면 backend → ai-service 호출이 됩니다.
 services:
+  # KAN-16 · 로컬 pgvector. 기본 postgres 이미지엔 확장이 없어 pgvector 이미지를 쓴다.
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: loop
+      POSTGRES_USER: loop
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-loop}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./ai-service/db:/docker-entrypoint-initdb.d   # V1__knowledge.sql 자동 적용 (최초 1회)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loop -d loop"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   ai-service:
+    depends_on:
+      db:
+        condition: service_healthy
     build: ./ai-service          # 저장소 위치에 맞게 수정
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
       # KAN-16에서 pgvector 붙일 때 사용
-      DATABASE_URL: ${DATABASE_URL:-}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://loop:${POSTGRES_PASSWORD:-loop}@db:5432/loop}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-001}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-768}
     ports:
       - "8000:8000"              # 내부 호출만이면 제거 가능
     healthcheck:
@@ -15,3 +38,6 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+
+volumes:
+  pgdata:
