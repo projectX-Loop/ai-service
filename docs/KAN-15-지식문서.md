@@ -2,7 +2,7 @@
 
 > 담당 성종현 · 선행 없음 · 후속 KAN-16
 > **방식 (2026-09-02 도윤 합의)**: B — 정의는 직접 작성하고 공적 자료를 출처로 인용. 원문 보관·청킹은 하지 않는다.
-> **상태 (2026-09-03)**: 개념 8/8 작성 완료. 외부 용어 출처 URL 1건 보강 중.
+> **상태 (2026-09-03 밤)**: 개념 8/8 작성 완료. **출처 URL·발행일 8/8 기록 완료** (TODO 5건 해소). 최대낙폭만 공적 기관 정의 페이지가 없어 사유 기재(수용 기준 3). 남은 것: 승준 금융 검수 · 노션 정리 페이지.
 
 ## 왜 원문을 수집하지 않고 직접 쓰는가
 
@@ -17,16 +17,16 @@
 
 | 개념 | 파일 | source_id | 출처 URL | 발행일 | 라이선스 | 태그 |
 |---|---|---|---|---|---|---|
-| 연환산 변동성 | `annual_volatility.md` | `concept/annual_volatility` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 v0.2 §4.4 vol_annual_pct 정의). 자체 작성. 용어 출처 TODO(성종현) | `annual_volatility, risk, vol_annual_pct` |
+| 연환산 변동성 | `annual_volatility.md` | `concept/annual_volatility` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 v0.2 §4.4 vol_annual_pct 정의). 자체 작성. **용어 출처**: 투자자교육협의회 「나에게 맞는 펀드, 수익률만으로 판단하지 말자!」(2019-05-30, 표준편차 정의) [kcie 498](https://www.kcie.or.kr/mobile/guide/3/17/web_view?content_idx=498) | `annual_volatility, risk, vol_annual_pct` |
 | 데이터 기준 기간의 의미 | `baseline_window.md` | `concept/baseline_window` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 v0.2 확정 ①·§3.1). 자체 작성 | `baseline_window, assumptions, data_basis` |
-| 투자 유의 문구 | `disclaimer.md` | `concept/disclaimer` | **TODO** | — | 자체 작성. 문구 형식은 금융투자협회 표준투자권유준칙 참고 | `disclaimer, assumptions` |
-| 최대 낙폭 (MDD) | `max_drawdown.md` | `concept/max_drawdown` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 v0.2 §4.4 mdd_pct 정의). 정의 문장은 자체 작성. 용어 출처 TODO(성종현) 금융투자협회 URL 보강 | `max_drawdown, risk, mdd_pct` |
-| 리밸런싱 | `rebalancing.md` | `concept/rebalancing` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 v0.2 §4.2 리밸런싱 규칙). 자체 작성. 용어 출처 TODO(성종현) | `rebalancing, target_weights, max_drift_pct` |
+| 투자 유의 문구 | `disclaimer.md` | `concept/disclaimer` | [금융투자협회 「표준투자권유준칙」 현행본](https://law.kofia.or.kr/service/law/lawView.do?seq=149&historySeq=0&gubun=cur&tree=part) | 2026-09-02 (자체 작성일. 준칙 최근 개정 2026-04-09) | 자체 작성. 준칙 제6조·제14조의 원금손실 가능성 안내 형식만 참고, 원문 인용·재배포 없음 | `disclaimer, assumptions` |
+| 최대 낙폭 (MDD) | `max_drawdown.md` | `concept/max_drawdown` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 v0.2 §4.4 mdd_pct 정의). 정의 문장은 자체 작성. **용어 출처 미확보 — 사유**: 금감원 파인·금투협·KRX·한국은행·투자자교육협의회에 정의 페이지 없음(9/3 검색). 용례만 [kcie 1044](https://www.kcie.or.kr/mobile/guide/2/13/web_view?series_idx=&content_idx=1044) '고점 대비 하락' | `max_drawdown, risk, mdd_pct` |
+| 리밸런싱 | `rebalancing.md` | `concept/rebalancing` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 v0.2 §4.2 리밸런싱 규칙). 자체 작성. **용어 출처**: 투자자교육협의회 「[3040 자산관리 팁 #04] 투자 타이밍과 종목 선택보다 중요한 것은?」(2020-03-10) [kcie 787](https://www.kcie.or.kr/mobile/guide/1/9/web_view?series_idx=&content_idx=787) | `rebalancing, target_weights, max_drift_pct` |
 | 현금성 자산의 이자 가정 | `safe_rate.md` | `concept/safe_rate` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 v0.2 확정 ③). 금리 출처는 한국은행 ECOS 121Y002 정기예금 가중평균금리(신규취급액) | `safe_rate, cash_assumption, assumptions` |
 | 목표 비중 | `target_weights.md` | `concept/target_weights` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 분석계약 v0.2 §2·§4). 정의 문장은 자체 작성 | `target_weights, rebalancing, portfolio` |
-| 거래 비용과 수수료 | `transaction_cost.md` | `concept/transaction_cost` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 v0.2 확정 ④). 정의 문장은 자체 작성. 증권사 수수료 체계는 TODO(성종현) 금융투자협회 자료 URL 보강 | `transaction_cost, rebalancing` |
+| 거래 비용과 수수료 | `transaction_cost.md` | `concept/transaction_cost` | https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246 | 2026-09-02 | 팀 내부 문서 (KAN-9 v0.2 확정 ④). 정의 문장은 자체 작성. **수수료 체계 출처**: 금융투자협회 전자공시 [「증권사 주식거래 수수료 비교」](https://dis.kofia.or.kr/websquare/index.jsp?w2xPath=/wq/compann/DISComdStockTrdCms.xml&divisionId=MDIS02007002000000&serviceId=SDIS02007002000) (스크립트 렌더링 화면) · [비교공시 안내 보도자료 2011-11-30](https://www.kofia.or.kr/npboard/m_108/view.do?nttId=102470&bbsId=BBSMSTR_000000000203) | `transaction_cost, rebalancing` |
 
-`source_url`이 **TODO**인 1건은 금융투자협회·한국거래소 용어 페이지 URL을 찾아 넣는다 (성종현, ~10분). 정의 문장 자체는 자체 작성이라 라이선스 무관.
+**출처 선정 기준 (9/3)**: 티켓이 우선한 금감원·거래소·금투협에서 용어 *정의* 페이지를 먼저 찾고, 없으면 금융위·금감원 등 7개 기관이 설립한 **전국투자자교육협의회(kcie.or.kr)** 교육 콘텐츠를 썼다. 정의 문장은 전부 자체 작성이라 출처는 "이 용어를 공적 기관이 이렇게 쓴다"는 근거일 뿐 원문을 가져오지 않는다 → 라이선스 문제 없음. 최대낙폭은 다섯 기관 어디에도 정의 페이지가 없어 사유를 적었다(수용 기준 3).
 
 ## 메타데이터 스키마 = `knowledge_document` 컬럼
 

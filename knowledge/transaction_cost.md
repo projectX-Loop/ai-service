@@ -3,7 +3,7 @@ source_id: concept/transaction_cost
 title: 거래 비용과 수수료
 source_url: https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246
 published_at: 2026-09-02
-license: 팀 내부 문서 (KAN-9 v0.2 확정 ④). 정의 문장은 자체 작성. 증권사 수수료 체계는 TODO(성종현) 금융투자협회 자료 URL 보강
+license: 팀 내부 문서 (KAN-9 v0.2 확정 ④). 정의 문장은 자체 작성. 증권사 수수료 체계 출처: 금융투자협회 전자공시 「증권사 주식거래 수수료 비교」 https://dis.kofia.or.kr/websquare/index.jsp?w2xPath=/wq/compann/DISComdStockTrdCms.xml&divisionId=MDIS02007002000000&serviceId=SDIS02007002000 (화면은 스크립트 렌더링. 비교공시 안내 보도자료 2011-11-30 https://www.kofia.or.kr/npboard/m_108/view.do?nttId=102470&bbsId=BBSMSTR_000000000203)
 concept_tags: transaction_cost, rebalancing
 ---
 

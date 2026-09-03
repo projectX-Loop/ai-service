@@ -1,9 +1,9 @@
 ---
 source_id: concept/disclaimer
 title: 투자 유의 문구
-source_url: TODO(성종현) — 금융투자협회 표준투자권유준칙 URL
-published_at:
-license: 자체 작성. 문구 형식은 금융투자협회 표준투자권유준칙 참고
+source_url: https://law.kofia.or.kr/service/law/lawView.do?seq=149&historySeq=0&gubun=cur&tree=part
+published_at: 2026-09-02
+license: 자체 작성. 문구 형식은 금융투자협회 「표준투자권유준칙」 현행본(최근 개정 2026-04-09) 제6조·제14조의 원금손실 가능성 안내를 참고. 준칙 원문은 인용·재배포하지 않음
 concept_tags: disclaimer, assumptions
 ---
 

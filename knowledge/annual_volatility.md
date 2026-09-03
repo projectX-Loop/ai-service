@@ -3,7 +3,7 @@ source_id: concept/annual_volatility
 title: 연환산 변동성
 source_url: https://app.notion.com/p/3cfea37df5ce80979260ec4b9b2f4246
 published_at: 2026-09-02
-license: 팀 내부 문서 (KAN-9 v0.2 §4.4 vol_annual_pct 정의). 자체 작성. 용어 출처 TODO(성종현)
+license: 팀 내부 문서 (KAN-9 v0.2 §4.4 vol_annual_pct 정의). 자체 작성. 용어 출처: 전국투자자교육협의회 「나에게 맞는 펀드, 수익률만으로 판단하지 말자!」(2019-05-30, 표준편차 정의) https://www.kcie.or.kr/mobile/guide/3/17/web_view?content_idx=498
 concept_tags: annual_volatility, risk, vol_annual_pct
 ---
 
