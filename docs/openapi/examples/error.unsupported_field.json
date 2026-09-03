@@ -1,0 +1,6 @@
+{
+  "code": "UNSUPPORTED_FIELD",
+  "message": "이 필드는 아직 지원하지 않습니다.",
+  "retryable": false,
+  "field": "goal.target_month"
+}

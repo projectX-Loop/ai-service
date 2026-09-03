@@ -1,0 +1,161 @@
+{
+  "plan": {
+    "public_id": "8f3c2a1e-6d4b-4f0a-9c7e-2b1d5e8a9f00",
+    "data_snapshot_id": 1,
+    "created_at": "2026-09-03T10:00:00+09:00",
+    "inputs": {
+      "goal": {
+        "amount": 50000000,
+        "horizon_months": 60
+      },
+      "funds": {
+        "initial": 10000000,
+        "monthly": 600000
+      },
+      "alloc": {
+        "initial": {
+          "invest": 70,
+          "safe": 30,
+          "other": 0
+        },
+        "monthly": {
+          "invest": 50,
+          "safe": 40,
+          "other": 10
+        }
+      },
+      "portfolio": {
+        "assets": [
+          {
+            "code": "KR_EQ",
+            "weight": 40
+          },
+          {
+            "code": "US_EQ",
+            "weight": 40
+          },
+          {
+            "code": "KR_BOND",
+            "weight": 20
+          }
+        ]
+      },
+      "rebalancing": {
+        "focus": "Q"
+      }
+    }
+  },
+  "calculation": {
+    "status": "OK",
+    "meta": {
+      "assumptions_version": "v0.2",
+      "data_version": "2026-09-02",
+      "data_hash": "sha256:fa84100c",
+      "window": {
+        "start": "2021-08",
+        "end": "2026-07",
+        "months": 60
+      },
+      "assets_used": [
+        {
+          "code": "KR_EQ",
+          "display_name": "국내 주식 (KODEX 200)",
+          "instrument": "069500"
+        },
+        {
+          "code": "US_EQ",
+          "display_name": "해외 주식 (SPY × USD/KRW)",
+          "instrument": "SPY"
+        },
+        {
+          "code": "KR_BOND",
+          "display_name": "국내 채권 (KODEX 국고채3년)",
+          "instrument": "114260"
+        }
+      ],
+      "data_basis": "실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지)",
+      "safe_rate_annual_pct": 2.962167,
+      "generated_at": "2026-09-02T00:00:00Z",
+      "warnings": []
+    },
+    "derived": {
+      "propensity_label": "중립형",
+      "invest_share_overall_pct": 54.35,
+      "plan_excluded_amount": 3600000
+    },
+    "per_period": {
+      "M": {
+        "trajectory": [
+          {
+            "month": 1,
+            "total": 10600000
+          },
+          {
+            "month": 60,
+            "total": 70662655
+          }
+        ],
+        "cum_cost": 39878,
+        "risk": {
+          "mdd_pct": 7.63,
+          "vol_annual_pct": 17.72,
+          "max_drift_pct": 12.25
+        },
+        "gap": {
+          "fv_total": 70662655,
+          "shortfall": -20662655,
+          "extra_monthly_required": 0,
+          "months_extension": 0
+        }
+      },
+      "Q": {
+        "trajectory": [
+          {
+            "month": 1,
+            "total": 10600000
+          },
+          {
+            "month": 60,
+            "total": 69755097
+          }
+        ],
+        "cum_cost": 26310,
+        "risk": {
+          "mdd_pct": 8.5,
+          "vol_annual_pct": 18.04,
+          "max_drift_pct": 13.58
+        },
+        "gap": {
+          "fv_total": 69755097,
+          "shortfall": -19755097,
+          "extra_monthly_required": 0,
+          "months_extension": 0
+        }
+      },
+      "H": {
+        "trajectory": [
+          {
+            "month": 1,
+            "total": 10600000
+          },
+          {
+            "month": 60,
+            "total": 70873005
+          }
+        ],
+        "cum_cost": 25917,
+        "risk": {
+          "mdd_pct": 9.3,
+          "vol_annual_pct": 18.64,
+          "max_drift_pct": 23.72
+        },
+        "gap": {
+          "fv_total": 70873005,
+          "shortfall": -20873005,
+          "extra_monthly_required": 0,
+          "months_extension": 0
+        }
+      }
+    }
+  }
+}

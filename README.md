@@ -14,13 +14,14 @@ explainer/
   guardrail.py     검증기 C2~C13. 이 프로젝트의 핵심
   client.py        Gemini Flash 호출 → 가드레일 → 실패 시 1회 재생성
   api.py           FastAPI. POST /rag/answer · GET /health
+  public_api.py    공개 API(브라우저↔Spring) JSON 계약 — KAN-4. 실행 안 함, Spring DTO의 원본
   knowledge/       chunking · embedding · store(pgvector) · retrieve(결과 필드 → 개념 청크)
 knowledge/         RAG 원재료 — 개념 문서 8개. 코드가 읽는 데이터 (KAN-15)
 fixtures/          KAN-11 골든 P0 실측값 기반 입력·정상 응답
-tests/             guardrail 15 · knowledge 45 · retrieve 18 · explain 10 — 전부 LLM·DB 호출 없음
-scripts/           ingest.py(적재) · search.py(검색 평가)
+tests/             guardrail 15 · knowledge 45 · retrieve 18 · explain 10 · public_api 47 — 전부 LLM·DB 호출 없음
+scripts/           ingest.py(적재) · search.py(검색 평가) · export_openapi.py(OpenAPI 생성)
 db/                V1__knowledge.sql — knowledge_* 스키마. backend Flyway로 이관 예정
-docs/              설계 문서 6개 (KAN-04·12·13·15·16·17) + 인덱스
+docs/              설계 문서 6개 (KAN-04·12·13·15·16·17) + 인덱스 + openapi/(공개·내부 OpenAPI, 예시 JSON 13개)
 run.py             CLI
 Dockerfile · docker-compose.ai-service.yml
 ```
@@ -34,9 +35,10 @@ python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 **키·DB 없이 — 전부 돈다** (검증기·청킹·검색 파일 폴백·가짜 Gemini)
 
 ```bash
-for t in guardrail knowledge retrieve explain; do ./.venv/bin/python tests/test_$t.py; done
+for t in guardrail knowledge retrieve explain public_api; do ./.venv/bin/python tests/test_$t.py; done
 ./.venv/bin/python run.py fixtures/case1_small_gap.json --check fixtures/case1_response_good.json
 ./.venv/bin/python scripts/ingest.py --dry-run
+./.venv/bin/python scripts/export_openapi.py          # docs/openapi/*.json 재생성 (계약 바꿨을 때)
 ```
 
 **실제 LLM 호출** (Gemini 키)
@@ -68,7 +70,15 @@ export GEMINI_API_KEY=...
 | `EXPLANATION_UNAVAILABLE` | 200 | 모델 호출 실패·키 없음. 재시도 |
 | `INVALID_INPUT` | 422 | 본문이 KAN-9 §5 모양이 아님. `violations`에 필드 |
 
-요청·응답 예시 JSON과 상세 규약은 [`docs/KAN-17-내부HTTP계약.md`](docs/KAN-17-내부HTTP계약.md).
+요청·응답 예시 JSON과 상세 규약은 [`docs/KAN-17-내부HTTP계약.md`](docs/KAN-17-내부HTTP계약.md). OpenAPI는 [`docs/openapi/ai-service.openapi.json`](docs/openapi/ai-service.openapi.json).
+
+## 공개 API JSON (KAN-4 · 브라우저 ↔ Spring)
+
+ai-service가 서빙하지 않는다. **Spring DTO의 원본**을 여기서 정하고(`explainer/public_api.py`) OpenAPI로 뽑아 도윤에게 준다 — 9/3 분담. 경로·상태 코드는 노션 §4(도윤), JSON 본문은 이 레포. `calculation`·`explanation`은 `schema.py` 모델 재사용이라 내부 계약과 어긋날 수 없다.
+
+- [`docs/openapi/public-api.openapi.json`](docs/openapi/public-api.openapi.json) — 5 엔드포인트 · 35 스키마
+- [`docs/openapi/examples/`](docs/openapi/examples/) — 요청·응답·오류 예시 13개. `tests/test_public_api.py`가 전부 계약과 대조
+- 결정 4가지(오류 봉투·explanation 필드·`focus/goal_amount` 조립·samples 목록형)는 [`docs/KAN-04`](docs/KAN-04-API-명세.md) §3
 
 ## Docker
 

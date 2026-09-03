@@ -1,0 +1,853 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ai-service",
+    "version": "0.1.0",
+    "description": "Spring ↔ ai-service 내부 계약. 요청 = KAN-11 analyze() 출력 + focus + goal_amount. 처리가 끝나면 항상 200 + status, 입력 불일치만 422. 상세: docs/KAN-17-내부HTTP계약.md"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rag/answer": {
+      "post": {
+        "summary": "Answer",
+        "operationId": "answer_rag_answer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationInput"
+              },
+              "examples": {
+                "case1_small_gap": {
+                  "value": {
+                    "status": "OK",
+                    "meta": {
+                      "assumptions_version": "v0.2",
+                      "data_version": "2026-09-02",
+                      "data_hash": "sha256:fa84100c",
+                      "window": {
+                        "start": "2021-08",
+                        "end": "2026-07",
+                        "months": 60
+                      },
+                      "assets_used": [
+                        {
+                          "code": "KR_EQ",
+                          "display_name": "국내 주식 (KODEX 200)",
+                          "instrument": "069500"
+                        },
+                        {
+                          "code": "US_EQ",
+                          "display_name": "해외 주식 (SPY × USD/KRW)",
+                          "instrument": "SPY"
+                        },
+                        {
+                          "code": "KR_BOND",
+                          "display_name": "국내 채권 (KODEX 국고채3년)",
+                          "instrument": "114260"
+                        }
+                      ],
+                      "data_basis": "실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지)",
+                      "safe_rate_annual_pct": 2.962167,
+                      "generated_at": "2026-09-02T00:00:00Z",
+                      "warnings": []
+                    },
+                    "derived": {
+                      "propensity_label": "중립형",
+                      "invest_share_overall_pct": 54.35,
+                      "plan_excluded_amount": 3600000
+                    },
+                    "focus": "Q",
+                    "per_period": {
+                      "M": {
+                        "trajectory": [
+                          {
+                            "month": 1,
+                            "total": 10600000
+                          },
+                          {
+                            "month": 60,
+                            "total": 70662655
+                          }
+                        ],
+                        "cum_cost": 39878,
+                        "risk": {
+                          "mdd_pct": 7.63,
+                          "vol_annual_pct": 17.72,
+                          "max_drift_pct": 12.25
+                        },
+                        "gap": {
+                          "fv_total": 70662655,
+                          "shortfall": -20662655,
+                          "extra_monthly_required": 0,
+                          "months_extension": 0
+                        }
+                      },
+                      "Q": {
+                        "trajectory": [
+                          {
+                            "month": 1,
+                            "total": 10600000
+                          },
+                          {
+                            "month": 60,
+                            "total": 69755097
+                          }
+                        ],
+                        "cum_cost": 26310,
+                        "risk": {
+                          "mdd_pct": 8.5,
+                          "vol_annual_pct": 18.04,
+                          "max_drift_pct": 13.58
+                        },
+                        "gap": {
+                          "fv_total": 69755097,
+                          "shortfall": -19755097,
+                          "extra_monthly_required": 0,
+                          "months_extension": 0
+                        }
+                      },
+                      "H": {
+                        "trajectory": [
+                          {
+                            "month": 1,
+                            "total": 10600000
+                          },
+                          {
+                            "month": 60,
+                            "total": 70873005
+                          }
+                        ],
+                        "cum_cost": 25917,
+                        "risk": {
+                          "mdd_pct": 9.3,
+                          "vol_annual_pct": 18.64,
+                          "max_drift_pct": 23.72
+                        },
+                        "gap": {
+                          "fv_total": 70873005,
+                          "shortfall": -20873005,
+                          "extra_monthly_required": 0,
+                          "months_extension": 0
+                        }
+                      }
+                    },
+                    "goal_amount": 50000000
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdjustableInput": {
+        "description": "사용자가 입력으로 조정할 수 있는 것 (KAN-9 §2 입력 필드). 이것만 다음 행동이 될 수 있다.\n\n포트폴리오 비중 조정은 뺀다 — 권유하는 순간 투자자문이 된다.",
+        "enum": [
+          "MONTHLY_CONTRIBUTION",
+          "GOAL_HORIZON",
+          "GOAL_AMOUNT",
+          "ALLOC_MONTHLY",
+          "ALLOC_INITIAL",
+          "REBALANCING_FOCUS"
+        ],
+        "title": "AdjustableInput",
+        "type": "string"
+      },
+      "AnswerResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "OK | EXPLANATION_REJECTED | EXPLANATION_UNAVAILABLE"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Explanation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attempts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempts",
+            "description": "모델 호출 횟수"
+          },
+          "retrieved_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Retrieved Refs",
+            "description": "프롬프트에 넣은 지식 청크 참조 (KAN-17)"
+          },
+          "violations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Violations",
+            "description": "가드레일 위반 내역"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "Spring이 사용자 문구로 바꿀 사유"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "AnswerResponse",
+        "description": "Spring이 받는 응답. explanation이 null이면 결과 화면만 그리면 된다."
+      },
+      "Claim": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "description": "사용자에게 보여줄 문장",
+            "title": "Text",
+            "type": "string"
+          },
+          "evidence": {
+            "description": "이 문장에 등장한 모든 수치의 출처. 입력 JSON의 JSON Pointer (예: /per_period/Q/gap/shortfall) 또는 지식 청크 참조(chunk:<source_id>#<idx>). 근거를 댈 수 없는 숫자는 문장에서 뺄 것",
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "text",
+          "evidence"
+        ],
+        "title": "Claim",
+        "type": "object"
+      },
+      "Explanation": {
+        "additionalProperties": false,
+        "description": "AI 설명 응답. KAN-9 §7 필드 + evidence(KAN-12 추가) + highlighted_period(PRD 수용기준 4).",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/Claim",
+            "description": "2~3문장. 목표 간극과 전체 상황. 기준 구간(meta.window)을 반드시 언급"
+          },
+          "per_period_pros_cons": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProsCons"
+            },
+            "description": "M·Q·H 세 주기 전부. 각 장점≥1·단점≥1",
+            "propertyNames": {
+              "$ref": "#/components/schemas/Period"
+            },
+            "title": "Per Period Pros Cons",
+            "type": "object"
+          },
+          "risks": {
+            "description": "≥1. risk 지표 인용, MDD 1순위",
+            "items": {
+              "$ref": "#/components/schemas/RiskClaim"
+            },
+            "minItems": 1,
+            "title": "Risks",
+            "type": "array"
+          },
+          "next_actions": {
+            "description": "≥1. 입력으로 조정 가능한 행동만",
+            "items": {
+              "$ref": "#/components/schemas/NextAction"
+            },
+            "minItems": 1,
+            "title": "Next Actions",
+            "type": "array"
+          },
+          "assumptions_note": {
+            "$ref": "#/components/schemas/Claim",
+            "description": "기준 구간 + 환노출 + meta.data_basis 명시"
+          },
+          "highlighted_period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "입력 focus를 그대로 에코. focus가 없으면 null"
+          },
+          "retrieved_refs": {
+            "description": "인용한 지식 청크 참조의 합집합 (chunk:<source_id>#<idx>). RAG 미사용 시 빈 배열",
+            "items": {
+              "type": "string"
+            },
+            "title": "Retrieved Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summary",
+          "per_period_pros_cons",
+          "risks",
+          "next_actions",
+          "assumptions_note",
+          "highlighted_period",
+          "retrieved_refs"
+        ],
+        "title": "Explanation",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "NextAction": {
+        "additionalProperties": false,
+        "properties": {
+          "adjustable_input": {
+            "$ref": "#/components/schemas/AdjustableInput",
+            "description": "조정 대상. 상품·종목·비중은 선택지에 없다"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "adjustable_input",
+          "text",
+          "evidence"
+        ],
+        "title": "NextAction",
+        "type": "object"
+      },
+      "Period": {
+        "description": "리밸런싱 주기. KAN-9 표기 M / Q / H.",
+        "enum": [
+          "M",
+          "Q",
+          "H"
+        ],
+        "title": "Period",
+        "type": "string"
+      },
+      "ProsCons": {
+        "additionalProperties": false,
+        "properties": {
+          "pros": {
+            "description": "이 주기의 장점. 비용·이탈·MDD 축으로 수치 인용",
+            "items": {
+              "$ref": "#/components/schemas/Claim"
+            },
+            "minItems": 1,
+            "title": "Pros",
+            "type": "array"
+          },
+          "cons": {
+            "description": "이 주기의 단점. 우열 판정 금지",
+            "items": {
+              "$ref": "#/components/schemas/Claim"
+            },
+            "minItems": 1,
+            "title": "Cons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "pros",
+          "cons"
+        ],
+        "title": "ProsCons",
+        "type": "object"
+      },
+      "RiskClaim": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "description": "위험 요인 이름",
+            "title": "Title",
+            "type": "string"
+          },
+          "detail": {
+            "description": "이 위험이 뜻하는 바. 입력에 있는 값만 인용하고 직접 환산·계산하지 말 것",
+            "title": "Detail",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "detail",
+          "evidence"
+        ],
+        "title": "RiskClaim",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "AssetUsed": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "display_name": {
+            "default": "",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "instrument": {
+            "default": "",
+            "title": "Instrument",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "AssetUsed",
+        "type": "object"
+      },
+      "Derived": {
+        "properties": {
+          "propensity_label": {
+            "default": "",
+            "title": "Propensity Label",
+            "type": "string"
+          },
+          "invest_share_overall_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Invest Share Overall Pct"
+          },
+          "plan_excluded_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Excluded Amount"
+          }
+        },
+        "title": "Derived",
+        "type": "object"
+      },
+      "Gap": {
+        "properties": {
+          "fv_total": {
+            "title": "Fv Total",
+            "type": "integer"
+          },
+          "shortfall": {
+            "title": "Shortfall",
+            "type": "integer"
+          },
+          "extra_monthly_required": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Extra Monthly Required"
+          },
+          "months_extension": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Months Extension"
+          }
+        },
+        "required": [
+          "fv_total",
+          "shortfall"
+        ],
+        "title": "Gap",
+        "type": "object"
+      },
+      "Meta": {
+        "properties": {
+          "assumptions_version": {
+            "default": "",
+            "title": "Assumptions Version",
+            "type": "string"
+          },
+          "data_version": {
+            "default": "",
+            "title": "Data Version",
+            "type": "string"
+          },
+          "data_hash": {
+            "default": "",
+            "title": "Data Hash",
+            "type": "string"
+          },
+          "window": {
+            "$ref": "#/components/schemas/Window"
+          },
+          "assets_used": {
+            "items": {
+              "$ref": "#/components/schemas/AssetUsed"
+            },
+            "title": "Assets Used",
+            "type": "array"
+          },
+          "data_basis": {
+            "default": "",
+            "title": "Data Basis",
+            "type": "string"
+          },
+          "generated_at": {
+            "default": "",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "safe_rate_annual_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Safe Rate Annual Pct"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "window"
+        ],
+        "title": "Meta",
+        "type": "object"
+      },
+      "PeriodResult": {
+        "properties": {
+          "trajectory": {
+            "items": {
+              "$ref": "#/components/schemas/TrajectoryPoint"
+            },
+            "title": "Trajectory",
+            "type": "array"
+          },
+          "cum_cost": {
+            "title": "Cum Cost",
+            "type": "integer"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/Risk"
+          },
+          "gap": {
+            "$ref": "#/components/schemas/Gap"
+          }
+        },
+        "required": [
+          "cum_cost",
+          "risk",
+          "gap"
+        ],
+        "title": "PeriodResult",
+        "type": "object"
+      },
+      "Risk": {
+        "properties": {
+          "mdd_pct": {
+            "title": "Mdd Pct",
+            "type": "number"
+          },
+          "vol_annual_pct": {
+            "title": "Vol Annual Pct",
+            "type": "number"
+          },
+          "worst_month_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Worst Month Pct"
+          },
+          "max_drift_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Max Drift Pct"
+          }
+        },
+        "required": [
+          "mdd_pct",
+          "vol_annual_pct"
+        ],
+        "title": "Risk",
+        "type": "object"
+      },
+      "SimulationInput": {
+        "description": "POST /rag/answer 요청 본문 = KAN-11 analyze() 출력 + focus.\n\nfocus는 KAN-9 입력(rebalancing.focus)이지만 §5 출력에는 에코되지 않는다.\nPRD 수용기준 4(\"선택된 주기 언급\")를 위해 backend가 함께 넘긴다 — KAN-9 반영 요청 항목.",
+        "properties": {
+          "status": {
+            "default": "OK",
+            "title": "Status",
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "derived": {
+            "$ref": "#/components/schemas/Derived"
+          },
+          "per_period": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PeriodResult"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/Period"
+            },
+            "title": "Per Period",
+            "type": "object"
+          },
+          "focus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "goal_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Goal Amount"
+          }
+        },
+        "required": [
+          "meta",
+          "per_period"
+        ],
+        "title": "SimulationInput",
+        "type": "object"
+      },
+      "TrajectoryPoint": {
+        "properties": {
+          "month": {
+            "title": "Month",
+            "type": "integer"
+          },
+          "invest": {
+            "default": 0,
+            "title": "Invest",
+            "type": "integer"
+          },
+          "safe": {
+            "default": 0,
+            "title": "Safe",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "total"
+        ],
+        "title": "TrajectoryPoint",
+        "type": "object"
+      },
+      "Window": {
+        "properties": {
+          "start": {
+            "title": "Start",
+            "type": "string"
+          },
+          "end": {
+            "title": "End",
+            "type": "string"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "months"
+        ],
+        "title": "Window",
+        "type": "object"
+      }
+    }
+  }
+}

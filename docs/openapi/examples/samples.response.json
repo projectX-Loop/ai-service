@@ -1,0 +1,49 @@
+{
+  "samples": [
+    {
+      "id": "P0",
+      "label": "5년 뒤 5,000만원 · 초기 1,000만원 · 월 60만원",
+      "inputs": {
+        "goal": {
+          "amount": 50000000,
+          "horizon_months": 60
+        },
+        "funds": {
+          "initial": 10000000,
+          "monthly": 600000
+        },
+        "alloc": {
+          "initial": {
+            "invest": 70,
+            "safe": 30,
+            "other": 0
+          },
+          "monthly": {
+            "invest": 50,
+            "safe": 40,
+            "other": 10
+          }
+        },
+        "portfolio": {
+          "assets": [
+            {
+              "code": "KR_EQ",
+              "weight": 40
+            },
+            {
+              "code": "US_EQ",
+              "weight": 40
+            },
+            {
+              "code": "KR_BOND",
+              "weight": 20
+            }
+          ]
+        },
+        "rebalancing": {
+          "focus": "Q"
+        }
+      }
+    }
+  ]
+}

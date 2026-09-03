@@ -1,0 +1,35 @@
+{
+  "snapshot": {
+    "data_version": "2026-09-02",
+    "data_hash": "sha256:fa84100c",
+    "window": {
+      "start": "2021-08",
+      "end": "2026-07",
+      "months": 60
+    },
+    "safe_rate_annual_pct": 2.962167
+  },
+  "assets": [
+    {
+      "code": "KR_EQ",
+      "display_name": "국내 주식 (KODEX 200)",
+      "instrument": "069500",
+      "group": "base",
+      "tax_class": ""
+    },
+    {
+      "code": "US_EQ",
+      "display_name": "해외 주식 (SPY × USD/KRW)",
+      "instrument": "SPY",
+      "group": "base",
+      "tax_class": ""
+    },
+    {
+      "code": "KR_BOND",
+      "display_name": "국내 채권 (KODEX 국고채3년)",
+      "instrument": "114260",
+      "group": "base",
+      "tax_class": ""
+    }
+  ]
+}

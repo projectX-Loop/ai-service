@@ -1,0 +1,1922 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Loop 공개 API — 브라우저 ↔ Spring",
+    "version": "0.2.0",
+    "description": "KAN-4. 9/7 MVP = Kan-9 v0.2 경로 8필드 고정.\n\n· 경로·상태 코드·흐름: 노션 「프론트-백엔드 계약 정리」 §4 (권도윤)\n· JSON 본문: ai-service `explainer/public_api.py` (성종현, 9/3 카톡 분담)\n· 계산 결과 = Kan-9 §5 (`Calculation`), AI 설명 = Kan-9 §7 + evidence (`Explanation`)\n· 단위: 금액 KRW 정수 · 기간 개월 · 비율 정수 퍼센트(0~100)\n· 오류: 모든 4xx/5xx 는 `ErrorEnvelope`. 프론트는 `code`·`retryable` 로만 분기\n\n이 파일은 scripts/export_openapi.py 가 생성한다. 손으로 고치지 말 것."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "paths": {
+    "/plans": {
+      "post": {
+        "summary": "plan 생성 + 계산",
+        "description": "Kan-9 §2 정적 검증 → 현재 스냅샷 로드 → plan·inv_account·inv_holding 저장(한 트랜잭션) → ai-service POST /calculate (본문 = 요청 dict 그대로, 타임아웃 10초) → 201.\n\n계산 실패 시 plan 은 저장된 채 502 CALCULATION_FAILED (retryable, public_id 동봉).",
+        "requestBody": {
+          "required": true,
+          "description": "Kan-9 §2 입력 8필드 (v0.2). v0.3 필드가 있으면 400 UNSUPPORTED_FIELD",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanInputs"
+              },
+              "examples": {
+                "plans.request.P0": {
+                  "value": {
+                    "goal": {
+                      "amount": 50000000,
+                      "horizon_months": 60
+                    },
+                    "funds": {
+                      "initial": 10000000,
+                      "monthly": 600000
+                    },
+                    "alloc": {
+                      "initial": {
+                        "invest": 70,
+                        "safe": 30,
+                        "other": 0
+                      },
+                      "monthly": {
+                        "invest": 50,
+                        "safe": 40,
+                        "other": 10
+                      }
+                    },
+                    "portfolio": {
+                      "assets": [
+                        {
+                          "code": "KR_EQ",
+                          "weight": 40
+                        },
+                        {
+                          "code": "US_EQ",
+                          "weight": 40
+                        },
+                        {
+                          "code": "KR_BOND",
+                          "weight": 20
+                        }
+                      ]
+                    },
+                    "rebalancing": {
+                      "focus": "Q"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "plan + calculation (analyze() 출력 그대로)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                },
+                "examples": {
+                  "plans.response.P0": {
+                    "value": {
+                      "plan": {
+                        "public_id": "8f3c2a1e-6d4b-4f0a-9c7e-2b1d5e8a9f00",
+                        "data_snapshot_id": 1,
+                        "created_at": "2026-09-03T10:00:00+09:00",
+                        "inputs": {
+                          "goal": {
+                            "amount": 50000000,
+                            "horizon_months": 60
+                          },
+                          "funds": {
+                            "initial": 10000000,
+                            "monthly": 600000
+                          },
+                          "alloc": {
+                            "initial": {
+                              "invest": 70,
+                              "safe": 30,
+                              "other": 0
+                            },
+                            "monthly": {
+                              "invest": 50,
+                              "safe": 40,
+                              "other": 10
+                            }
+                          },
+                          "portfolio": {
+                            "assets": [
+                              {
+                                "code": "KR_EQ",
+                                "weight": 40
+                              },
+                              {
+                                "code": "US_EQ",
+                                "weight": 40
+                              },
+                              {
+                                "code": "KR_BOND",
+                                "weight": 20
+                              }
+                            ]
+                          },
+                          "rebalancing": {
+                            "focus": "Q"
+                          }
+                        }
+                      },
+                      "calculation": {
+                        "status": "OK",
+                        "meta": {
+                          "assumptions_version": "v0.2",
+                          "data_version": "2026-09-02",
+                          "data_hash": "sha256:fa84100c",
+                          "window": {
+                            "start": "2021-08",
+                            "end": "2026-07",
+                            "months": 60
+                          },
+                          "assets_used": [
+                            {
+                              "code": "KR_EQ",
+                              "display_name": "국내 주식 (KODEX 200)",
+                              "instrument": "069500"
+                            },
+                            {
+                              "code": "US_EQ",
+                              "display_name": "해외 주식 (SPY × USD/KRW)",
+                              "instrument": "SPY"
+                            },
+                            {
+                              "code": "KR_BOND",
+                              "display_name": "국내 채권 (KODEX 국고채3년)",
+                              "instrument": "114260"
+                            }
+                          ],
+                          "data_basis": "실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지)",
+                          "safe_rate_annual_pct": 2.962167,
+                          "generated_at": "2026-09-02T00:00:00Z",
+                          "warnings": []
+                        },
+                        "derived": {
+                          "propensity_label": "중립형",
+                          "invest_share_overall_pct": 54.35,
+                          "plan_excluded_amount": 3600000
+                        },
+                        "per_period": {
+                          "M": {
+                            "trajectory": [
+                              {
+                                "month": 1,
+                                "total": 10600000
+                              },
+                              {
+                                "month": 60,
+                                "total": 70662655
+                              }
+                            ],
+                            "cum_cost": 39878,
+                            "risk": {
+                              "mdd_pct": 7.63,
+                              "vol_annual_pct": 17.72,
+                              "max_drift_pct": 12.25
+                            },
+                            "gap": {
+                              "fv_total": 70662655,
+                              "shortfall": -20662655,
+                              "extra_monthly_required": 0,
+                              "months_extension": 0
+                            }
+                          },
+                          "Q": {
+                            "trajectory": [
+                              {
+                                "month": 1,
+                                "total": 10600000
+                              },
+                              {
+                                "month": 60,
+                                "total": 69755097
+                              }
+                            ],
+                            "cum_cost": 26310,
+                            "risk": {
+                              "mdd_pct": 8.5,
+                              "vol_annual_pct": 18.04,
+                              "max_drift_pct": 13.58
+                            },
+                            "gap": {
+                              "fv_total": 69755097,
+                              "shortfall": -19755097,
+                              "extra_monthly_required": 0,
+                              "months_extension": 0
+                            }
+                          },
+                          "H": {
+                            "trajectory": [
+                              {
+                                "month": 1,
+                                "total": 10600000
+                              },
+                              {
+                                "month": 60,
+                                "total": 70873005
+                              }
+                            ],
+                            "cum_cost": 25917,
+                            "risk": {
+                              "mdd_pct": 9.3,
+                              "vol_annual_pct": 18.64,
+                              "max_drift_pct": 23.72
+                            },
+                            "gap": {
+                              "fv_total": 70873005,
+                              "shortfall": -20873005,
+                              "extra_monthly_required": 0,
+                              "months_extension": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패 (여러 건을 errors[] 로 한 번에) · v0.3 필드 · 데이터 의존 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                "examples": {
+                  "error.validation": {
+                    "value": {
+                      "code": "VALIDATION_ERROR",
+                      "message": "입력값을 확인해 주세요.",
+                      "retryable": false,
+                      "errors": [
+                        {
+                          "code": "WEIGHTS_SUM",
+                          "field": "portfolio.assets",
+                          "message": "자산 비중의 합이 100이어야 합니다."
+                        },
+                        {
+                          "code": "GOAL_HORIZON_RANGE",
+                          "field": "goal.horizon_months",
+                          "message": "목표 기간은 12~120개월이어야 합니다."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "ai-service 스냅샷과 DB data_snapshot(is_current) 불일치",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                "examples": {
+                  "error.snapshot_mismatch": {
+                    "value": {
+                      "code": "SNAPSHOT_MISMATCH",
+                      "message": "데이터 기준이 일치하지 않아 계산을 중단했습니다.",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "계산 실패. plan 은 저장됨 → GET /plans/{public_id} 로 재시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                "examples": {
+                  "error.calculation_failed": {
+                    "value": {
+                      "code": "CALCULATION_FAILED",
+                      "message": "계산에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+                      "retryable": true,
+                      "public_id": "8f3c2a1e-6d4b-4f0a-9c7e-2b1d5e8a9f00"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plans/{public_id}": {
+      "get": {
+        "summary": "plan 재조회 = 재계산",
+        "description": "저장된 inputs 로 다시 계산한다(결과 저장 없음). 새로고침·공유 링크 대응. 본문은 POST /plans 와 동일.",
+        "parameters": [
+          {
+            "name": "public_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "POST /plans 응답의 plan.public_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                },
+                "examples": {
+                  "plans.response.P0": {
+                    "value": {
+                      "plan": {
+                        "public_id": "8f3c2a1e-6d4b-4f0a-9c7e-2b1d5e8a9f00",
+                        "data_snapshot_id": 1,
+                        "created_at": "2026-09-03T10:00:00+09:00",
+                        "inputs": {
+                          "goal": {
+                            "amount": 50000000,
+                            "horizon_months": 60
+                          },
+                          "funds": {
+                            "initial": 10000000,
+                            "monthly": 600000
+                          },
+                          "alloc": {
+                            "initial": {
+                              "invest": 70,
+                              "safe": 30,
+                              "other": 0
+                            },
+                            "monthly": {
+                              "invest": 50,
+                              "safe": 40,
+                              "other": 10
+                            }
+                          },
+                          "portfolio": {
+                            "assets": [
+                              {
+                                "code": "KR_EQ",
+                                "weight": 40
+                              },
+                              {
+                                "code": "US_EQ",
+                                "weight": 40
+                              },
+                              {
+                                "code": "KR_BOND",
+                                "weight": 20
+                              }
+                            ]
+                          },
+                          "rebalancing": {
+                            "focus": "Q"
+                          }
+                        }
+                      },
+                      "calculation": {
+                        "status": "OK",
+                        "meta": {
+                          "assumptions_version": "v0.2",
+                          "data_version": "2026-09-02",
+                          "data_hash": "sha256:fa84100c",
+                          "window": {
+                            "start": "2021-08",
+                            "end": "2026-07",
+                            "months": 60
+                          },
+                          "assets_used": [
+                            {
+                              "code": "KR_EQ",
+                              "display_name": "국내 주식 (KODEX 200)",
+                              "instrument": "069500"
+                            },
+                            {
+                              "code": "US_EQ",
+                              "display_name": "해외 주식 (SPY × USD/KRW)",
+                              "instrument": "SPY"
+                            },
+                            {
+                              "code": "KR_BOND",
+                              "display_name": "국내 채권 (KODEX 국고채3년)",
+                              "instrument": "114260"
+                            }
+                          ],
+                          "data_basis": "실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지)",
+                          "safe_rate_annual_pct": 2.962167,
+                          "generated_at": "2026-09-02T00:00:00Z",
+                          "warnings": []
+                        },
+                        "derived": {
+                          "propensity_label": "중립형",
+                          "invest_share_overall_pct": 54.35,
+                          "plan_excluded_amount": 3600000
+                        },
+                        "per_period": {
+                          "M": {
+                            "trajectory": [
+                              {
+                                "month": 1,
+                                "total": 10600000
+                              },
+                              {
+                                "month": 60,
+                                "total": 70662655
+                              }
+                            ],
+                            "cum_cost": 39878,
+                            "risk": {
+                              "mdd_pct": 7.63,
+                              "vol_annual_pct": 17.72,
+                              "max_drift_pct": 12.25
+                            },
+                            "gap": {
+                              "fv_total": 70662655,
+                              "shortfall": -20662655,
+                              "extra_monthly_required": 0,
+                              "months_extension": 0
+                            }
+                          },
+                          "Q": {
+                            "trajectory": [
+                              {
+                                "month": 1,
+                                "total": 10600000
+                              },
+                              {
+                                "month": 60,
+                                "total": 69755097
+                              }
+                            ],
+                            "cum_cost": 26310,
+                            "risk": {
+                              "mdd_pct": 8.5,
+                              "vol_annual_pct": 18.04,
+                              "max_drift_pct": 13.58
+                            },
+                            "gap": {
+                              "fv_total": 69755097,
+                              "shortfall": -19755097,
+                              "extra_monthly_required": 0,
+                              "months_extension": 0
+                            }
+                          },
+                          "H": {
+                            "trajectory": [
+                              {
+                                "month": 1,
+                                "total": 10600000
+                              },
+                              {
+                                "month": 60,
+                                "total": 70873005
+                              }
+                            ],
+                            "cum_cost": 25917,
+                            "risk": {
+                              "mdd_pct": 9.3,
+                              "vol_annual_pct": 18.64,
+                              "max_drift_pct": 23.72
+                            },
+                            "gap": {
+                              "fv_total": 70873005,
+                              "shortfall": -20873005,
+                              "extra_monthly_required": 0,
+                              "months_extension": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PLAN_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                "examples": {
+                  "error.not_found": {
+                    "value": {
+                      "code": "PLAN_NOT_FOUND",
+                      "message": "분석을 찾을 수 없습니다. 새로 입력해 주세요.",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "CALCULATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                "examples": {
+                  "error.calculation_failed": {
+                    "value": {
+                      "code": "CALCULATION_FAILED",
+                      "message": "계산에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+                      "retryable": true,
+                      "public_id": "8f3c2a1e-6d4b-4f0a-9c7e-2b1d5e8a9f00"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plans/{public_id}/explanation": {
+      "post": {
+        "summary": "AI 설명 (결과 화면과 분리해서 나중에 채운다)",
+        "description": "재계산 → analyze() 출력 + rebalancing.focus + goal.amount → ai-service POST /rag/answer (타임아웃 30초).\n\nai-service 규약대로 **처리가 끝나면 항상 200**, 성패는 `status`. 결과 화면은 그대로 두고 설명 영역만 바꾼다. ai-service 불가·타임아웃만 502 EXPLANATION_UNAVAILABLE (retryable).",
+        "parameters": [
+          {
+            "name": "public_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "POST /plans 응답의 plan.public_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "status 로 분기. OK 면 explanation, 아니면 message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExplanationResponse"
+                },
+                "examples": {
+                  "explanation.response.ok": {
+                    "value": {
+                      "status": "OK",
+                      "explanation": {
+                        "highlighted_period": "Q",
+                        "summary": {
+                          "text": "2021-08~2026-07 시장이 그대로 반복된다면 분기별 리밸런싱의 만기 총자산은 6,975만원으로 목표 5,000만원을 1,975만원 초과합니다. 세 주기 모두 이 구간에서는 목표를 넘겼습니다.",
+                          "evidence": [
+                            "/meta/window/start",
+                            "/meta/window/end",
+                            "/per_period/Q/gap/fv_total",
+                            "/per_period/Q/gap/shortfall",
+                            "/goal_amount"
+                          ]
+                        },
+                        "per_period_pros_cons": {
+                          "M": {
+                            "pros": [
+                              {
+                                "text": "최대 이탈이 12.3%로 세 주기 중 가장 작아 목표 비중에서 덜 벗어납니다.",
+                                "evidence": [
+                                  "/per_period/M/risk/max_drift_pct"
+                                ]
+                              }
+                            ],
+                            "cons": [
+                              {
+                                "text": "누적 거래비용이 약 4만원으로 세 주기 중 가장 큽니다.",
+                                "evidence": [
+                                  "/per_period/M/cum_cost"
+                                ]
+                              }
+                            ]
+                          },
+                          "Q": {
+                            "pros": [
+                              {
+                                "text": "누적 거래비용 2만 6천원으로 월별보다 낮습니다.",
+                                "evidence": [
+                                  "/per_period/Q/cum_cost"
+                                ]
+                              }
+                            ],
+                            "cons": [
+                              {
+                                "text": "최대 낙폭이 8.5%로 월별보다 큽니다.",
+                                "evidence": [
+                                  "/per_period/Q/risk/mdd_pct"
+                                ]
+                              }
+                            ]
+                          },
+                          "H": {
+                            "pros": [
+                              {
+                                "text": "누적 거래비용이 약 2만 6천원으로 가장 낮습니다.",
+                                "evidence": [
+                                  "/per_period/H/cum_cost"
+                                ]
+                              }
+                            ],
+                            "cons": [
+                              {
+                                "text": "최대 이탈이 23.7%로 가장 커서 목표 비중에서 크게 벗어난 구간이 있었습니다.",
+                                "evidence": [
+                                  "/per_period/H/risk/max_drift_pct"
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "risks": [
+                          {
+                            "title": "최대 낙폭 구간의 심리적 부담",
+                            "detail": "분기별 기준 이 구간에서 자산이 고점 대비 8.5%까지 줄어든 시점이 있었습니다. 같은 폭의 하락이 다시 없으리라는 근거는 이 분석에 포함되어 있지 않습니다.",
+                            "evidence": [
+                              "/per_period/Q/risk/mdd_pct"
+                            ]
+                          }
+                        ],
+                        "next_actions": [
+                          {
+                            "adjustable_input": "GOAL_AMOUNT",
+                            "text": "이 구간에서는 목표를 초과했으므로, 목표 금액을 높인 조건으로 다시 계산해볼 수 있습니다.",
+                            "evidence": [
+                              "/per_period/Q/gap/shortfall"
+                            ]
+                          }
+                        ],
+                        "assumptions_note": {
+                          "text": "기준 구간 2021-08~2026-07의 실제 월간 총수익률을 재생한 결과이며, 해외 주식은 환노출(무헤지) 상태입니다. 안전저축 금리는 연 2.96%로 고정했습니다. 과거 데이터 기반이며 미래 수익을 보장하지 않습니다.",
+                          "evidence": [
+                            "/meta/window/start",
+                            "/meta/window/end",
+                            "/meta/data_basis",
+                            "/meta/safe_rate_annual_pct"
+                          ]
+                        },
+                        "retrieved_refs": []
+                      },
+                      "message": null
+                    }
+                  },
+                  "explanation.response.rejected": {
+                    "value": {
+                      "status": "EXPLANATION_REJECTED",
+                      "explanation": null,
+                      "message": "AI 설명을 생성하지 못했습니다. 분석 결과는 정상입니다."
+                    }
+                  },
+                  "explanation.response.unavailable": {
+                    "value": {
+                      "status": "EXPLANATION_UNAVAILABLE",
+                      "explanation": null,
+                      "message": "AI 설명을 잠시 사용할 수 없습니다. 다시 시도해 주세요."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PLAN_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                "examples": {
+                  "error.not_found": {
+                    "value": {
+                      "code": "PLAN_NOT_FOUND",
+                      "message": "분석을 찾을 수 없습니다. 새로 입력해 주세요.",
+                      "retryable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "ai-service 불가·타임아웃",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                "examples": {
+                  "error.explanation_unavailable": {
+                    "value": {
+                      "code": "EXPLANATION_UNAVAILABLE",
+                      "message": "AI 설명을 잠시 사용할 수 없습니다. 다시 시도해 주세요.",
+                      "retryable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/universe": {
+      "get": {
+        "summary": "입력 폼 자산 선택지 + 데이터 기준",
+        "description": "data_snapshot(is_current) + 카탈로그. group=base 3종은 항상, optional(US_EQ_KR)은 카탈로그에 있을 때.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniverseResponse"
+                },
+                "examples": {
+                  "universe.response": {
+                    "value": {
+                      "snapshot": {
+                        "data_version": "2026-09-02",
+                        "data_hash": "sha256:fa84100c",
+                        "window": {
+                          "start": "2021-08",
+                          "end": "2026-07",
+                          "months": 60
+                        },
+                        "safe_rate_annual_pct": 2.962167
+                      },
+                      "assets": [
+                        {
+                          "code": "KR_EQ",
+                          "display_name": "국내 주식 (KODEX 200)",
+                          "instrument": "069500",
+                          "group": "base",
+                          "tax_class": ""
+                        },
+                        {
+                          "code": "US_EQ",
+                          "display_name": "해외 주식 (SPY × USD/KRW)",
+                          "instrument": "SPY",
+                          "group": "base",
+                          "tax_class": ""
+                        },
+                        {
+                          "code": "KR_BOND",
+                          "display_name": "국내 채권 (KODEX 국고채3년)",
+                          "instrument": "114260",
+                          "group": "base",
+                          "tax_class": ""
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/samples": {
+      "get": {
+        "summary": "대표 페르소나 입력값 (PRD 수용기준 5 · KAN-14)",
+        "description": "로그인 없이 샘플로 재현. inputs 를 그대로 POST /plans 에 보내면 된다.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SamplesResponse"
+                },
+                "examples": {
+                  "samples.response": {
+                    "value": {
+                      "samples": [
+                        {
+                          "id": "P0",
+                          "label": "5년 뒤 5,000만원 · 초기 1,000만원 · 월 60만원",
+                          "inputs": {
+                            "goal": {
+                              "amount": 50000000,
+                              "horizon_months": 60
+                            },
+                            "funds": {
+                              "initial": 10000000,
+                              "monthly": 600000
+                            },
+                            "alloc": {
+                              "initial": {
+                                "invest": 70,
+                                "safe": 30,
+                                "other": 0
+                              },
+                              "monthly": {
+                                "invest": 50,
+                                "safe": 40,
+                                "other": 10
+                              }
+                            },
+                            "portfolio": {
+                              "assets": [
+                                {
+                                  "code": "KR_EQ",
+                                  "weight": 40
+                                },
+                                {
+                                  "code": "US_EQ",
+                                  "weight": 40
+                                },
+                                {
+                                  "code": "KR_BOND",
+                                  "weight": 20
+                                }
+                              ]
+                            },
+                            "rebalancing": {
+                              "focus": "Q"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdjustableInput": {
+        "description": "사용자가 입력으로 조정할 수 있는 것 (KAN-9 §2 입력 필드). 이것만 다음 행동이 될 수 있다.\n\n포트폴리오 비중 조정은 뺀다 — 권유하는 순간 투자자문이 된다.",
+        "enum": [
+          "MONTHLY_CONTRIBUTION",
+          "GOAL_HORIZON",
+          "GOAL_AMOUNT",
+          "ALLOC_MONTHLY",
+          "ALLOC_INITIAL",
+          "REBALANCING_FOCUS"
+        ],
+        "title": "AdjustableInput",
+        "type": "string"
+      },
+      "Alloc": {
+        "additionalProperties": false,
+        "properties": {
+          "initial": {
+            "$ref": "#/components/schemas/AllocSplit",
+            "description": "합 100 아니면 ALLOC_SUM_INITIAL"
+          },
+          "monthly": {
+            "$ref": "#/components/schemas/AllocSplit",
+            "description": "합 100 아니면 ALLOC_SUM_MONTHLY"
+          }
+        },
+        "required": [
+          "initial",
+          "monthly"
+        ],
+        "title": "Alloc",
+        "type": "object"
+      },
+      "AllocSplit": {
+        "additionalProperties": false,
+        "description": "자금 배분율. 정수 퍼센트, 합 100. '투자 성향' 입력은 없고 이 배분율에서 파생된다 (Kan-9 확정 ⑪).",
+        "properties": {
+          "invest": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Invest",
+            "type": "integer"
+          },
+          "safe": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Safe",
+            "type": "integer"
+          },
+          "other": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Other",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "invest",
+          "safe",
+          "other"
+        ],
+        "title": "AllocSplit",
+        "type": "object"
+      },
+      "AssetUsed": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "display_name": {
+            "default": "",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "instrument": {
+            "default": "",
+            "title": "Instrument",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "AssetUsed",
+        "type": "object"
+      },
+      "AssetWeight": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "Kan-9 카탈로그 코드 (KR_EQ · US_EQ · KR_BOND · US_EQ_KR). 밖이면 ASSET_NOT_IN_CATALOG",
+            "title": "Code",
+            "type": "string"
+          },
+          "weight": {
+            "description": "정수 퍼센트. 0 < w ≤ 100 아니면 PORTFOLIO_WEIGHT_RANGE",
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "weight"
+        ],
+        "title": "AssetWeight",
+        "type": "object"
+      },
+      "Calculation": {
+        "description": "ai-service POST /calculate 응답 = KAN-11 analyze() 출력 그대로 (Kan-9 §5). 백엔드는 가공·저장하지 않는다.\n\n`schema.SimulationInput` 과 같은 모양에서 `focus`·`goal_amount` 만 없다 — 그 둘은 Spring이\nPOST /rag/answer 를 부를 때 덧붙이는 값이라 공개 응답에는 나오지 않는다.",
+        "properties": {
+          "status": {
+            "default": "OK",
+            "title": "Status",
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "derived": {
+            "$ref": "#/components/schemas/Derived"
+          },
+          "per_period": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PeriodResult"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/Period"
+            },
+            "title": "Per Period",
+            "type": "object"
+          }
+        },
+        "required": [
+          "meta",
+          "per_period"
+        ],
+        "title": "Calculation",
+        "type": "object"
+      },
+      "Claim": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "description": "사용자에게 보여줄 문장",
+            "title": "Text",
+            "type": "string"
+          },
+          "evidence": {
+            "description": "이 문장에 등장한 모든 수치의 출처. 입력 JSON의 JSON Pointer (예: /per_period/Q/gap/shortfall) 또는 지식 청크 참조(chunk:<source_id>#<idx>). 근거를 댈 수 없는 숫자는 문장에서 뺄 것",
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "text",
+          "evidence"
+        ],
+        "title": "Claim",
+        "type": "object"
+      },
+      "Derived": {
+        "properties": {
+          "propensity_label": {
+            "default": "",
+            "title": "Propensity Label",
+            "type": "string"
+          },
+          "invest_share_overall_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Invest Share Overall Pct"
+          },
+          "plan_excluded_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Excluded Amount"
+          }
+        },
+        "title": "Derived",
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "Kan-9 정적 검증 코드 (GOAL_AMOUNT_RANGE, WEIGHTS_SUM, …)",
+            "title": "Code",
+            "type": "string"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "점 표기 경로 (portfolio.assets)",
+            "title": "Field"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "additionalProperties": false,
+        "description": "모든 4xx/5xx 의 본문. 프론트는 `code` 와 `retryable` 로만 분기한다.\n\n입력 검증은 Kan-9 정적 오류 여러 개를 한 번에 돌려준다 — 봉투 `code=VALIDATION_ERROR`, 낱개는 `errors[]`\n(엔진 `ValidationError.errors` 와 같은 모양). 봉투를 유지하는 이유: 오류 응답의 최상위 모양이 항상 같아야\n프론트가 배열/객체를 분기하지 않는다.",
+        "properties": {
+          "code": {
+            "description": "HTTP 층: VALIDATION_ERROR · UNSUPPORTED_FIELD · PLAN_NOT_FOUND · CALCULATION_FAILED · EXPLANATION_UNAVAILABLE · SNAPSHOT_MISMATCH. 데이터 의존 오류는 엔진 코드 그대로: INSUFFICIENT_HISTORY · ASSET_NOT_IN_CATALOG",
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "description": "사용자에게 보여도 되는 문구",
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "description": "true = 재시도 버튼, false = 입력 수정 요구",
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "단일 필드 오류일 때 (UNSUPPORTED_FIELD 등)",
+            "title": "Field"
+          },
+          "errors": {
+            "description": "VALIDATION_ERROR 일 때 낱개 목록",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "public_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "CALCULATION_FAILED: plan은 저장됐으므로 재시도 = GET /plans/{public_id}",
+            "title": "Public Id"
+          },
+          "max_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "INSUFFICIENT_HISTORY 일 때 가능한 최대 기간",
+            "title": "Max Months"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "Explanation": {
+        "additionalProperties": false,
+        "description": "AI 설명 응답. KAN-9 §7 필드 + evidence(KAN-12 추가) + highlighted_period(PRD 수용기준 4).",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/Claim",
+            "description": "2~3문장. 목표 간극과 전체 상황. 기준 구간(meta.window)을 반드시 언급"
+          },
+          "per_period_pros_cons": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProsCons"
+            },
+            "description": "M·Q·H 세 주기 전부. 각 장점≥1·단점≥1",
+            "propertyNames": {
+              "$ref": "#/components/schemas/Period"
+            },
+            "title": "Per Period Pros Cons",
+            "type": "object"
+          },
+          "risks": {
+            "description": "≥1. risk 지표 인용, MDD 1순위",
+            "items": {
+              "$ref": "#/components/schemas/RiskClaim"
+            },
+            "minItems": 1,
+            "title": "Risks",
+            "type": "array"
+          },
+          "next_actions": {
+            "description": "≥1. 입력으로 조정 가능한 행동만",
+            "items": {
+              "$ref": "#/components/schemas/NextAction"
+            },
+            "minItems": 1,
+            "title": "Next Actions",
+            "type": "array"
+          },
+          "assumptions_note": {
+            "$ref": "#/components/schemas/Claim",
+            "description": "기준 구간 + 환노출 + meta.data_basis 명시"
+          },
+          "highlighted_period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "입력 focus를 그대로 에코. focus가 없으면 null"
+          },
+          "retrieved_refs": {
+            "description": "인용한 지식 청크 참조의 합집합 (chunk:<source_id>#<idx>). RAG 미사용 시 빈 배열",
+            "items": {
+              "type": "string"
+            },
+            "title": "Retrieved Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summary",
+          "per_period_pros_cons",
+          "risks",
+          "next_actions",
+          "assumptions_note",
+          "highlighted_period",
+          "retrieved_refs"
+        ],
+        "title": "Explanation",
+        "type": "object"
+      },
+      "ExplanationResponse": {
+        "additionalProperties": false,
+        "description": "POST /plans/{public_id}/explanation 200 본문. 항상 200이고 성패는 `status` (KAN-17 규약 그대로).\n\nai-service 응답에서 `explanation`·`status`·`message` 만 노출한다. `attempts`·`violations`·`retrieved_refs` 는\n디버깅·저장용(agent_message)이라 브라우저에 주지 않는다.",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ExplanationStatus"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Explanation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "status=OK 일 때만 non-null"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "status≠OK 일 때 설명 영역에 보여줄 문구",
+            "title": "Message"
+          }
+        },
+        "required": [
+          "status",
+          "explanation"
+        ],
+        "title": "ExplanationResponse",
+        "type": "object"
+      },
+      "ExplanationStatus": {
+        "enum": [
+          "OK",
+          "EXPLANATION_REJECTED",
+          "EXPLANATION_UNAVAILABLE"
+        ],
+        "title": "ExplanationStatus",
+        "type": "string"
+      },
+      "Funds": {
+        "additionalProperties": false,
+        "properties": {
+          "initial": {
+            "description": "초기 투자금 KRW. 음수 → FUNDS_INITIAL_RANGE",
+            "minimum": 0,
+            "title": "Initial",
+            "type": "integer"
+          },
+          "monthly": {
+            "description": "월 납입액 KRW (상수). 음수 → FUNDS_MONTHLY_RANGE. initial·monthly 동시 0 → NO_FUNDS",
+            "minimum": 0,
+            "title": "Monthly",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "initial",
+          "monthly"
+        ],
+        "title": "Funds",
+        "type": "object"
+      },
+      "Gap": {
+        "properties": {
+          "fv_total": {
+            "title": "Fv Total",
+            "type": "integer"
+          },
+          "shortfall": {
+            "title": "Shortfall",
+            "type": "integer"
+          },
+          "extra_monthly_required": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Extra Monthly Required"
+          },
+          "months_extension": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Months Extension"
+          }
+        },
+        "required": [
+          "fv_total",
+          "shortfall"
+        ],
+        "title": "Gap",
+        "type": "object"
+      },
+      "Goal": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "목표 금액 KRW. 범위 밖 → GOAL_AMOUNT_RANGE",
+            "maximum": 10000000000,
+            "minimum": 1000000,
+            "title": "Amount",
+            "type": "integer"
+          },
+          "horizon_months": {
+            "description": "목표 기간(개월). 범위 밖 → GOAL_HORIZON_RANGE",
+            "maximum": 120,
+            "minimum": 12,
+            "title": "Horizon Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "amount",
+          "horizon_months"
+        ],
+        "title": "Goal",
+        "type": "object"
+      },
+      "Meta": {
+        "properties": {
+          "assumptions_version": {
+            "default": "",
+            "title": "Assumptions Version",
+            "type": "string"
+          },
+          "data_version": {
+            "default": "",
+            "title": "Data Version",
+            "type": "string"
+          },
+          "data_hash": {
+            "default": "",
+            "title": "Data Hash",
+            "type": "string"
+          },
+          "window": {
+            "$ref": "#/components/schemas/Window"
+          },
+          "assets_used": {
+            "items": {
+              "$ref": "#/components/schemas/AssetUsed"
+            },
+            "title": "Assets Used",
+            "type": "array"
+          },
+          "data_basis": {
+            "default": "",
+            "title": "Data Basis",
+            "type": "string"
+          },
+          "generated_at": {
+            "default": "",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "safe_rate_annual_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Safe Rate Annual Pct"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "window"
+        ],
+        "title": "Meta",
+        "type": "object"
+      },
+      "NextAction": {
+        "additionalProperties": false,
+        "properties": {
+          "adjustable_input": {
+            "$ref": "#/components/schemas/AdjustableInput",
+            "description": "조정 대상. 상품·종목·비중은 선택지에 없다"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "adjustable_input",
+          "text",
+          "evidence"
+        ],
+        "title": "NextAction",
+        "type": "object"
+      },
+      "Period": {
+        "description": "리밸런싱 주기. KAN-9 표기 M / Q / H.",
+        "enum": [
+          "M",
+          "Q",
+          "H"
+        ],
+        "title": "Period",
+        "type": "string"
+      },
+      "PeriodResult": {
+        "properties": {
+          "trajectory": {
+            "items": {
+              "$ref": "#/components/schemas/TrajectoryPoint"
+            },
+            "title": "Trajectory",
+            "type": "array"
+          },
+          "cum_cost": {
+            "title": "Cum Cost",
+            "type": "integer"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/Risk"
+          },
+          "gap": {
+            "$ref": "#/components/schemas/Gap"
+          }
+        },
+        "required": [
+          "cum_cost",
+          "risk",
+          "gap"
+        ],
+        "title": "PeriodResult",
+        "type": "object"
+      },
+      "Plan": {
+        "additionalProperties": false,
+        "description": "저장된 입력 + 식별자. 백엔드가 채운다. 결과는 저장하지 않으므로 재조회 = 재계산.",
+        "properties": {
+          "public_id": {
+            "description": "UUID. 조건 수정은 새 plan 생성(9/7 PUT 없음)",
+            "title": "Public Id",
+            "type": "string"
+          },
+          "data_snapshot_id": {
+            "description": "생성 시점 data_snapshot(is_current)",
+            "title": "Data Snapshot Id",
+            "type": "integer"
+          },
+          "created_at": {
+            "description": "ISO 8601",
+            "title": "Created At",
+            "type": "string"
+          },
+          "inputs": {
+            "$ref": "#/components/schemas/PlanInputs"
+          }
+        },
+        "required": [
+          "public_id",
+          "data_snapshot_id",
+          "created_at",
+          "inputs"
+        ],
+        "title": "Plan",
+        "type": "object"
+      },
+      "PlanInputs": {
+        "additionalProperties": false,
+        "description": "POST /plans 요청 본문 = Kan-9 §2 입력 dict 그대로. Spring은 변환 없이 ai-service POST /calculate 에 넘긴다.",
+        "properties": {
+          "goal": {
+            "$ref": "#/components/schemas/Goal"
+          },
+          "funds": {
+            "$ref": "#/components/schemas/Funds"
+          },
+          "alloc": {
+            "$ref": "#/components/schemas/Alloc"
+          },
+          "portfolio": {
+            "$ref": "#/components/schemas/Portfolio"
+          },
+          "rebalancing": {
+            "$ref": "#/components/schemas/Rebalancing"
+          }
+        },
+        "required": [
+          "goal",
+          "funds",
+          "alloc",
+          "portfolio",
+          "rebalancing"
+        ],
+        "title": "PlanInputs",
+        "type": "object"
+      },
+      "PlanResponse": {
+        "additionalProperties": false,
+        "description": "POST /plans 201 · GET /plans/{public_id} 200 공통 본문.",
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          },
+          "calculation": {
+            "$ref": "#/components/schemas/Calculation"
+          }
+        },
+        "required": [
+          "plan",
+          "calculation"
+        ],
+        "title": "PlanResponse",
+        "type": "object"
+      },
+      "Portfolio": {
+        "additionalProperties": false,
+        "properties": {
+          "assets": {
+            "description": "1~3개, weight 합 100 (WEIGHTS_SUM), code 중복 불가 (PORTFOLIO_ASSET_DUP)",
+            "items": {
+              "$ref": "#/components/schemas/AssetWeight"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Assets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "assets"
+        ],
+        "title": "Portfolio",
+        "type": "object"
+      },
+      "ProsCons": {
+        "additionalProperties": false,
+        "properties": {
+          "pros": {
+            "description": "이 주기의 장점. 비용·이탈·MDD 축으로 수치 인용",
+            "items": {
+              "$ref": "#/components/schemas/Claim"
+            },
+            "minItems": 1,
+            "title": "Pros",
+            "type": "array"
+          },
+          "cons": {
+            "description": "이 주기의 단점. 우열 판정 금지",
+            "items": {
+              "$ref": "#/components/schemas/Claim"
+            },
+            "minItems": 1,
+            "title": "Cons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "pros",
+          "cons"
+        ],
+        "title": "ProsCons",
+        "type": "object"
+      },
+      "Rebalancing": {
+        "additionalProperties": false,
+        "properties": {
+          "focus": {
+            "$ref": "#/components/schemas/Period",
+            "description": "강조 주기 M/Q/H. 필수 — FOCUS_INVALID. 계산은 세 주기 전부, 화면·AI에서 강조"
+          }
+        },
+        "required": [
+          "focus"
+        ],
+        "title": "Rebalancing",
+        "type": "object"
+      },
+      "Risk": {
+        "properties": {
+          "mdd_pct": {
+            "title": "Mdd Pct",
+            "type": "number"
+          },
+          "vol_annual_pct": {
+            "title": "Vol Annual Pct",
+            "type": "number"
+          },
+          "worst_month_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Worst Month Pct"
+          },
+          "max_drift_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Max Drift Pct"
+          }
+        },
+        "required": [
+          "mdd_pct",
+          "vol_annual_pct"
+        ],
+        "title": "Risk",
+        "type": "object"
+      },
+      "RiskClaim": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "description": "위험 요인 이름",
+            "title": "Title",
+            "type": "string"
+          },
+          "detail": {
+            "description": "이 위험이 뜻하는 바. 입력에 있는 값만 인용하고 직접 환산·계산하지 말 것",
+            "title": "Detail",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "detail",
+          "evidence"
+        ],
+        "title": "RiskClaim",
+        "type": "object"
+      },
+      "Sample": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "P0 … (KAN-14 페르소나)",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "inputs": {
+            "$ref": "#/components/schemas/PlanInputs"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "inputs"
+        ],
+        "title": "Sample",
+        "type": "object"
+      },
+      "SamplesResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/Sample"
+            },
+            "minItems": 1,
+            "title": "Samples",
+            "type": "array"
+          }
+        },
+        "required": [
+          "samples"
+        ],
+        "title": "SamplesResponse",
+        "type": "object"
+      },
+      "TrajectoryPoint": {
+        "properties": {
+          "month": {
+            "title": "Month",
+            "type": "integer"
+          },
+          "invest": {
+            "default": 0,
+            "title": "Invest",
+            "type": "integer"
+          },
+          "safe": {
+            "default": 0,
+            "title": "Safe",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "total"
+        ],
+        "title": "TrajectoryPoint",
+        "type": "object"
+      },
+      "UniverseAsset": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "Kan-9 카탈로그 코드. portfolio.assets[].code 에 그대로 넣는다",
+            "title": "Code",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "instrument": {
+            "description": "종목코드 (069500 등)",
+            "title": "Instrument",
+            "type": "string"
+          },
+          "group": {
+            "description": "base (KR_EQ·US_EQ·KR_BOND) | optional (US_EQ_KR)",
+            "title": "Group",
+            "type": "string"
+          },
+          "tax_class": {
+            "default": "",
+            "title": "Tax Class",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "display_name",
+          "instrument",
+          "group"
+        ],
+        "title": "UniverseAsset",
+        "type": "object"
+      },
+      "UniverseResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/UniverseSnapshot"
+          },
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/UniverseAsset"
+            },
+            "title": "Assets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "snapshot",
+          "assets"
+        ],
+        "title": "UniverseResponse",
+        "type": "object"
+      },
+      "UniverseSnapshot": {
+        "additionalProperties": false,
+        "description": "입력 폼에 노출할 데이터 기준. 필드명은 Kan-9 §5 `meta` 와 같게 — 프론트가 어휘 하나만 알면 되게.",
+        "properties": {
+          "data_version": {
+            "title": "Data Version",
+            "type": "string"
+          },
+          "data_hash": {
+            "title": "Data Hash",
+            "type": "string"
+          },
+          "window": {
+            "additionalProperties": true,
+            "description": "{start, end, months} — Kan-9 §5 meta.window 과 동일",
+            "title": "Window",
+            "type": "object"
+          },
+          "safe_rate_annual_pct": {
+            "description": "안전 버킷 예금금리 (연 %)",
+            "title": "Safe Rate Annual Pct",
+            "type": "number"
+          }
+        },
+        "required": [
+          "data_version",
+          "data_hash",
+          "window",
+          "safe_rate_annual_pct"
+        ],
+        "title": "UniverseSnapshot",
+        "type": "object"
+      },
+      "Window": {
+        "properties": {
+          "start": {
+            "title": "Start",
+            "type": "string"
+          },
+          "end": {
+            "title": "End",
+            "type": "string"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "months"
+        ],
+        "title": "Window",
+        "type": "object"
+      }
+    }
+  }
+}

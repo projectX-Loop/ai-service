@@ -1,0 +1,17 @@
+{
+  "code": "VALIDATION_ERROR",
+  "message": "입력값을 확인해 주세요.",
+  "retryable": false,
+  "errors": [
+    {
+      "code": "WEIGHTS_SUM",
+      "field": "portfolio.assets",
+      "message": "자산 비중의 합이 100이어야 합니다."
+    },
+    {
+      "code": "GOAL_HORIZON_RANGE",
+      "field": "goal.horizon_months",
+      "message": "목표 기간은 12~120개월이어야 합니다."
+    }
+  ]
+}

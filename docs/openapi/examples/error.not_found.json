@@ -1,0 +1,5 @@
+{
+  "code": "PLAN_NOT_FOUND",
+  "message": "분석을 찾을 수 없습니다. 새로 입력해 주세요.",
+  "retryable": false
+}
