@@ -8,6 +8,8 @@
 from __future__ import annotations
 
 import argparse
+from dotenv import load_dotenv
+load_dotenv()   # ai-service/.env → 환경변수. 없으면 조용히 통과
 import json
 import sys
 from pathlib import Path
