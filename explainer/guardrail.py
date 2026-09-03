@@ -323,7 +323,8 @@ def validate(exp: Explanation, source: SimulationInput | dict,
             v.append(Violation("C10", "ERROR", f"선택된 주기('{label}별')가 summary에 언급되지 않음"))
 
     # retrieved_refs — 문장별 chunk evidence의 합집합과 일치하는가
-    if set(exp.retrieved_refs) != chunk_refs:
+    normalized_refs = {r[len("chunk:"):] if r.startswith("chunk:") else r for r in exp.retrieved_refs}
+    if normalized_refs != chunk_refs:
         v.append(Violation("C3", "WARN", f"retrieved_refs {sorted(exp.retrieved_refs)} != evidence 청크 합집합 {sorted(chunk_refs)}"))
 
     return Report(v)

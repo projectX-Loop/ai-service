@@ -1,7 +1,7 @@
 # KAN-17 — ai-service 내부 HTTP 계약
 
 > 담당 성종현(구현) / 권도윤(계약 확정·Spring 연동) · 선행 KAN-9·12·16 · 후속 백엔드 통합·KAN-14
-> **상태 (2026-09-03)**: 엔드포인트·Dockerfile·RAG 결합 완료, 실호출 미검증(Gemini 키 대기).
+> **상태 (2026-09-03 밤)**: 엔드포인트·Dockerfile·RAG 결합 완료. **Gemini 실호출 검증 완료** — 아래 「실측」 절. compose 연동은 도윤 대기.
 > 요청·응답 JSON은 KAN-4를 따른다. **9/3 도윤 카톡으로 JSON 응답 방식 확정이 성종현 몫**이 되어, 아래는 제안이 아니라 **ai-service 측 확정안**이다. 도윤 통합 중 바뀌면 여기를 먼저 고친다.
 
 ## 엔드포인트
@@ -270,6 +270,32 @@
 | 인용 청크가 실제로 존재 | ✅ C3 + `chunk_exists` 주입 |
 | KAN-13 테스트 전부 통과 | ✅ 케이스 1 · **도윤 9/3 14:18 확정: 수용 범위는 케이스 1~5.** 케이스 6(입력 오류)은 KAN-4 API 검증으로 이관(`public_api.py` + `test_public_api.py` 6-a~e) · 케이스 2~5는 승준 골든 P1~P5 대기 |
 | `docker compose up`으로 backend → ai-service 호출 | ❌ 도윤 compose·Docker 환경 대기 |
+
+## 실측 (2026-09-03 밤, 케이스 1 · gemini-3.6-flash · FileRetriever)
+
+키를 넣고 처음 돌린 결과. 코드로만은 못 찾는 문제 4건이 나왔고 전부 `client.py`(provider 결합 지점)에서 처리했다.
+
+| 발견 | 처리 |
+|---|---|
+| `response_schema`에 `dict[Period, ProsCons]`가 `additionalProperties`로 나가 Developer API가 400 | Gemini 전송용 와이어 스키마(M·Q·H 고정 필드)로 변환, `additionalProperties` 제거. 공개 계약 `Explanation`은 그대로 |
+| `gemini-2.0-flash` 폐기(404), 2.5는 신규 사용자 차단 | 기본 모델 `gemini-3.6-flash` (API 권고 ID). `GEMINI_MODEL`로 덮어쓰기 가능 |
+| evidence 문자열 끝에 잡음 토큰(`… me Grouped Window Start`, `… philosophy`)이 붙어 C3 반려 | 프롬프트에 evidence 형식 규칙 명시 + 와이어 스키마 `pattern`으로 형식 강제 |
+| `26,310원`을 `3만원`으로 반올림해 C4 반려 | 프롬프트 "만원 단위까지" 문구가 원인 → 100만원 미만은 원 단위 그대로로 개정 (KAN-12 프롬프트 동기화) |
+
+**통과율**: 개정 후 정상 응답 3/3이 1회 시도에 가드레일 통과 (오류 0). 개정 전은 3회 중 1회 통과.
+
+**응답 시간**: 생성 1회 **20~36초** (입력 ~3,100토큰 · 출력 ~1,300토큰). 재생성까지 가면 60초를 넘는다.
+노션 §4의 Spring→ai-service 타임아웃 **30초는 부족** — 90초 이상을 도윤에게 요청 (확정 대기).
+
+**장애 응답**: 503(고부하)·429(쿼터)는 SDK 재시도 없이(또는 1회) `EXPLANATION_UNAVAILABLE`로 바로 돌린다.
+기본 SDK 설정(5회, 백오프 최대 60초)은 한 번의 503에 수 분을 끌어 제거했다. `GEMINI_TIMEOUT_MS`(기본 45000)로 요청 상한.
+
+**⚠ 쿼터**: 현재 키는 **무료 등급 — `gemini-3.6-flash` 하루 20회**(`GenerateRequestsPerDayPerProjectPerModel-FreeTier`).
+심사 데모·리허설·KAN-13 실측을 감당할 수 없다. 도윤에게 결제 등급 전환 또는 별도 프로젝트 키 요청 (확정 대기).
+
+**임베딩**: `gemini-embedding-001` 768차원 실호출 정상(0.5초). pgvector 적재는 Docker 미설치로 미검증.
+
+**HTTP**: `GET /health` 정상. `POST /rag/answer` 200 + `status`(정상 OK · 쿼터 초과 시 EXPLANATION_UNAVAILABLE) · 잘못된 본문 422 INVALID_INPUT 확인.
 
 ## 보류
 

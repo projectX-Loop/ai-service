@@ -48,6 +48,8 @@ export GEMINI_API_KEY=...
 ./.venv/bin/python run.py fixtures/case1_small_gap.json
 ```
 
+9/3 실측: 생성 1회 20~36초 · 기본 모델 `gemini-3.6-flash` · 요청 상한 `GEMINI_TIMEOUT_MS`(기본 45000). **무료 등급 키는 모델당 하루 20회**라 429가 나면 쿼터다. 상세 [`docs/KAN-17`](docs/KAN-17-내부HTTP계약.md) 「실측」.
+
 **pgvector 적재·검색** — [`docs/KAN-16-지식저장소.md`](docs/KAN-16-지식저장소.md) 「실행」 참조. `DATABASE_URL` 없으면 `knowledge/*.md`를 직접 읽는 파일 폴백으로 동작한다.
 
 ## 내부 HTTP (KAN-17)
@@ -115,7 +117,7 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 
 ## 미검증 · 다음
 
-- **실제 LLM 호출** (Gemini 키 대기) — SDK 표면·모델 ID·가드레일 반려율
+- ~~실제 LLM 호출~~ — 9/3 검증 완료(3/3 통과). 남은 것: 쿼터 결제 전환 · 통과율 표본 확대
 - **DB 적재·검색 실행** (Docker 대기) — `scripts/ingest.py --fake` → `search.py --eval`
 - docker compose 연동 (도윤 compose 대기)
 - KAN-13 픽스처 2~5 (승준 골든 P1~P5)

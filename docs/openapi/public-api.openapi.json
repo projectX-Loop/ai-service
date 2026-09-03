@@ -1233,7 +1233,7 @@
             "description": "입력 focus를 그대로 에코. focus가 없으면 null"
           },
           "retrieved_refs": {
-            "description": "인용한 지식 청크 참조의 합집합 (chunk:<source_id>#<idx>). RAG 미사용 시 빈 배열",
+            "description": "인용한 지식 청크 참조의 합집합. evidence의 chunk: 접두어를 뺀 <source_id>#<idx> 형식 (예: concept/max_drawdown#0). RAG 미사용 시 빈 배열",
             "items": {
               "type": "string"
             },

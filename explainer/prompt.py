@@ -30,8 +30,15 @@ summary와 assumptions_note에는 기준 구간(meta.window의 시작~끝)을 �
 [수치 인용 규칙]
 숫자를 언급할 때마다 그 값의 JSON Pointer 경로를 evidence에 기록합니다.
   예: /per_period/Q/gap/shortfall, /per_period/M/risk/mdd_pct, /meta/window/start
+evidence의 각 항목은 JSON Pointer 하나 또는 chunk:<source_id>#<idx> 하나만 적습니다.
+경로는 반드시 /로 시작하고, 경로 뒤에 설명·공백·다른 문자를 붙이지 마십시오.
+  금지: "/meta/window/start 기준 구간", "meta/window/end"
+  허용: "/meta/window/start"
 evidence에 근거를 댈 수 없는 숫자는 문장에서 빼십시오.
-금액은 만원 단위까지, 비율은 소수점 첫째 자리까지만 표기합니다.
+금액과 비율은 입력 값을 그대로 씁니다. 반올림하지 마십시오.
+  100만원 이상 금액만 만원 단위로 줄일 수 있습니다 (70,662,655원 → "7,066만원").
+  그 미만은 원 단위 그대로 씁니다 (26,310원 → "26,310원". "3만원"은 금지).
+  비율은 입력에 있는 소수점 그대로 씁니다 (7.63%).
 덧셈, 뺄셈, 평균, 비율을 직접 계산하지 마십시오. 입력에 있는 값을 그대로 인용합니다.
 gap.shortfall이 양수면 부족액, 음수면 초과 달성액입니다. 부호를 바꿔 계산하지 말고
 "부족" 또는 "초과"라는 말로 표현합니다.

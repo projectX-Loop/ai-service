@@ -26,7 +26,7 @@ services:
     build: ./ai-service          # 저장소 위치에 맞게 수정
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
       # KAN-16에서 pgvector 붙일 때 사용
       DATABASE_URL: ${DATABASE_URL:-postgresql://loop:${POSTGRES_PASSWORD:-loop}@db:5432/loop}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-001}
