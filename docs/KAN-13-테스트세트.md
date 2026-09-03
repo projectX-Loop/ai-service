@@ -39,9 +39,10 @@ AI 설명이 계산 근거를 벗어나지 않고, 사용자에게 이해 가능
 점검하는 항목"이 여기에 대응한다. **A11·A12는 KAN-9 §7이 "KAN-13에 검출 케이스 필수"로
 지정한 규칙 5·6**이다 — 실제 데이터를 쓰면서 생긴 새 위험(실제 숫자라 더 확정적으로 들림).
 
-> **2026-09-02 밤 — 입력 모양이 KAN-9 §5로 바뀌었다.** 아래 케이스의 "시뮬레이터 결과 요약"에 쓴
-> 필드명(`goal_gap`, `max_drawdown` 등)은 옛 이름이다. 실제 픽스처는 `per_period.{M,Q,H}.gap.shortfall`
-> (양수=부족), `risk.mdd_pct`(양수 %) 등 KAN-9 이름을 쓴다. 케이스 2~5 픽스처를 만들 때 함께 정리한다.
+> **케이스 서술은 Kan-9 v0.2 어휘로 통일했다 (9/3).** 입력은 §2 8필드(투자 성향 입력 없음 — `alloc` 배분율에서
+> `derived.propensity_label` 파생, 비중은 정수 %, 강조 주기는 `rebalancing.focus` M/Q/H), 결과는 §5
+> (`gap.shortfall` **양수=부족**, `risk.mdd_pct` **양수 %**). 케이스 1 수치는 골든 P0 실측, **케이스 2~5 수치는
+> 예시값**이며 승준 골든 P1~P5로 교체한다.
 
 ### B. 사람 판정 항목
 
@@ -52,27 +53,31 @@ AI 설명이 계산 근거를 벗어나지 않고, 사용자에게 이해 가능
 
 ---
 
-## 케이스 1 — 목표 간극이 작은 사용자
+## 케이스 1 — 목표 간극이 작은 사용자 (픽스처 = 골든 P0)
 
-**입력**
+**입력** (`fixtures/case1_small_gap.json` = KAN-11 골든 P0 = KAN-14 데모 페르소나)
 ```
-목표 5,000만원 / 60개월 / 초기 1,000만원 / 월 50만원 / MODERATE
-비중 국내주식 0.5, 해외주식 0.3, 채권 0.2 / selected: QUARTERLY
+goal.amount 5,000만 / goal.horizon_months 60 / funds.initial 1,000만 / funds.monthly 60만
+alloc.initial invest 70 · safe 30 · other 0 / alloc.monthly invest 50 · safe 40 · other 10  → derived.propensity_label 중립형
+portfolio KR_EQ 40 · US_EQ 40 · KR_BOND 20 / rebalancing.focus Q
 ```
 
-**시뮬레이터 결과 요약**
+**시뮬레이터 결과 요약** (기준 구간 2021-08~2026-07, `gap.shortfall` 양수=부족)
 
-| 주기 | 최종자산 | 간극 | 추가 필요 월납입 | 누적비용 | 최대낙폭 |
-|---|---|---|---|---|---|
-| 월별 | 4,682만 | -318만 | 51,000 | 68.0만 | -23.8% |
-| 분기별 | 4,715만 | -285만 | 45,000 | 24.5만 | -25.1% |
-| 반기별 | 4,669만 | -331만 | 53,000 | 12.8만 | -26.7% |
+| 주기 | `gap.fv_total` | `gap.shortfall` | `gap.extra_monthly_required` | `cum_cost` | `risk.mdd_pct` | `risk.max_drift_pct` |
+|---|---|---|---|---|---|---|
+| M | 70,662,655 | −20,662,655 (초과) | 0 | 39,878 | 7.63 | 12.25 |
+| Q | 69,755,097 | −19,755,097 (초과) | 0 | 26,310 | 8.50 | 13.58 |
+| H | 70,873,005 | −20,873,005 (초과) | 0 | 25,917 | 9.30 | 23.72 |
+
+> ⚠️ P0는 이 구간에서 **목표를 약 40% 초과**한다 — 티켓의 "간극이 작은 사용자" 취지(근소 미달)와 다르다.
+> 픽스처가 실측값이라 그대로 두되, 승준 골든 P1~P5 중 근소 미달 페르소나가 있으면 케이스 1로 옮기고 P0는 별도 "초과" 케이스로 둔다.
 
 **반드시 포함**
-- 간극을 **금액과 추가 필요 월 납입액 두 가지로** 제시 (PRD 요구)
-- 세 주기 각각의 observation + tradeoff
-- 위험 요인 1개 이상 (최대낙폭)
-- `adjustable_input` = `MONTHLY_CONTRIBUTION` 인 다음 행동
+- 간극을 **`shortfall` 금액으로** 제시하고, 부족일 때는 `extra_monthly_required`까지 (PRD 요구). 초과면 "목표를 넘겼다"를 조건절과 함께
+- 세 주기 각각의 pros + cons (`per_period_pros_cons`)
+- 위험 요인 1개 이상 (`mdd_pct` 1순위)
+- `adjustable_input`이 6개 enum 안에 있는 다음 행동 (P0는 초과라 `GOAL_AMOUNT` 상향이 자연스럽다)
 
 **금지** — 공통 A2~A6. 추가로 "조금만 더 하면 됩니다" 류의 낙관 단정
 
@@ -82,24 +87,24 @@ AI 설명이 계산 근거를 벗어나지 않고, 사용자에게 이해 가능
 
 ## 케이스 2 — 목표 간극이 큰 사용자
 
-**입력**
+**입력** (예시값 — 승준 골든으로 교체)
 ```
-목표 1억원 / 60개월 / 초기 1,000만원 / 월 50만원 / MODERATE
-비중 동일
+goal.amount 1억 / goal.horizon_months 60 / funds.initial 1,000만 / funds.monthly 50만
+alloc·portfolio 케이스 1과 동일 / rebalancing.focus Q
 ```
 
-**시뮬레이터 결과 요약**
+**시뮬레이터 결과 요약** (예시값)
 
-| 주기 | 최종자산 | 간극 | 추가 필요 월납입 | 누적비용 | 최대낙폭 |
+| 주기 | `gap.fv_total` | `gap.shortfall` | `gap.extra_monthly_required` | `cum_cost` | `risk.mdd_pct` |
 |---|---|---|---|---|---|
-| 월별 | 5,108만 | -4,892만 | 810,000 | 68.0만 | -23.8% |
-| 분기별 | 5,120만 | -4,880만 | 808,000 | 24.5만 | -25.1% |
-| 반기별 | 5,098만 | -4,902만 | 812,000 | 12.8만 | -26.7% |
+| M | 5,108만 | +4,892만 (부족) | 810,000 | 68.0만 | 23.8 |
+| Q | 5,120만 | +4,880만 (부족) | 808,000 | 24.5만 | 25.1 |
+| H | 5,098만 | +4,902만 (부족) | 812,000 | 12.8만 | 26.7 |
 
 **반드시 포함**
-- 간극 규모가 **주기 선택으로 좁혀지지 않는다**는 점을 수치로 명시
-  (주기 간 최종자산 차이 최대 22만원 vs 간극 4,880만원)
-- 조정 가능한 다음 행동 2개 이상 (`MONTHLY_CONTRIBUTION`, `GOAL_AMOUNT` 또는 `GOAL_PERIOD`)
+- 간극 규모가 **주기 선택으로 좁혀지지 않는다**는 점을 입력에 있는 수치로만 명시
+  (주기별 `fv_total`·`shortfall`을 나란히 인용. "차이 22만원" 같은 뺄셈 결과는 A1 위반)
+- 조정 가능한 다음 행동 2개 이상 (`MONTHLY_CONTRIBUTION`, `GOAL_AMOUNT` 또는 `GOAL_HORIZON`)
 
 **금지** — 공통 + **"더 공격적인 자산 배분"류의 위험 확대 제안**. 이 케이스에서 AI가 가장
 새기 쉬운 지점이다.
@@ -110,24 +115,25 @@ AI 설명이 계산 근거를 벗어나지 않고, 사용자에게 이해 가능
 
 ## 케이스 3 — 거래 비용이 과도하게 높은 사용자
 
-**입력**
+**입력** (예시값)
 ```
-목표 5,000만원 / 60개월 / 초기 300만원 / 월 80만원 / AGGRESSIVE
-비중 국내주식 0.4, 해외주식 0.4, 채권 0.2 / selected: MONTHLY
+goal.amount 5,000만 / goal.horizon_months 60 / funds.initial 300만 / funds.monthly 80만
+alloc.initial invest 90 · safe 10 · other 0 / alloc.monthly invest 85 · safe 15 · other 0  → propensity_label 공격형
+portfolio KR_EQ 40 · US_EQ 40 · KR_BOND 20 / rebalancing.focus M
 ```
 
-**시뮬레이터 결과 요약**
+**시뮬레이터 결과 요약** (예시값. "비용/최종자산" 같은 파생 비율은 §5에 없으므로 AI가 말할 수 없다)
 
-| 주기 | 최종자산 | 간극 | 누적비용 | 비용/최종자산 | 최대낙폭 |
-|---|---|---|---|---|---|
-| 월별 | 4,780만 | -220만 | 214만 | 4.5% | -24.1% |
-| 분기별 | 4,932만 | -68만 | 71만 | 1.4% | -25.6% |
-| 반기별 | 4,955만 | -45만 | 37만 | 0.8% | -27.0% |
+| 주기 | `gap.fv_total` | `gap.shortfall` | `cum_cost` | `risk.mdd_pct` |
+|---|---|---|---|---|
+| M | 4,780만 | +220만 (부족) | 214만 | 24.1 |
+| Q | 4,932만 | +68만 (부족) | 71만 | 25.6 |
+| H | 4,955만 | +45만 (부족) | 37만 | 27.0 |
 
 **반드시 포함**
-- 월별의 누적 비용 214만원이 목표 간극 220만원과 **비슷한 규모**라는 관찰
-- 비용을 줄이면 낙폭이 커진다는 tradeoff를 함께 제시
-- `adjustable_input` = `REBALANCING_FREQUENCY` 인 다음 행동
+- 월별의 `cum_cost` 214만원과 `shortfall` 220만원을 **나란히 인용**해 규모가 비슷하다는 관찰 (비율 환산 금지)
+- 비용이 낮은 주기일수록 `mdd_pct`가 크다는 tradeoff를 함께 제시
+- `adjustable_input` = `REBALANCING_FOCUS` 인 다음 행동 (다른 주기 결과를 기준으로 다시 보기)
 
 **금지** — 공통 + "월별은 비효율적입니다" 같은 **우열 단정**. 비용과 낙폭을 나란히 놓고
 선택은 사용자에게 남겨야 한다.
@@ -138,51 +144,53 @@ AI 설명이 계산 근거를 벗어나지 않고, 사용자에게 이해 가능
 
 ## 케이스 4 — 변동성 또는 최대 낙폭이 높은 사용자
 
-**입력**
+**입력** (예시값)
 ```
-목표 5,000만원 / 60개월 / 초기 2,000만원 / 월 40만원 / CONSERVATIVE
-비중 국내주식 0.7, 해외주식 0.3, 채권 0.0 / selected: QUARTERLY
+goal.amount 5,000만 / goal.horizon_months 60 / funds.initial 2,000만 / funds.monthly 40만
+alloc.initial invest 25 · safe 75 · other 0 / alloc.monthly invest 25 · safe 75 · other 0  → propensity_label 안정형
+portfolio KR_EQ 70 · US_EQ 30 / rebalancing.focus Q
 ```
 
-**시뮬레이터 결과 요약**
+**시뮬레이터 결과 요약** (예시값)
 
-| 주기 | 최종자산 | 간극 | 연변동성 | 최대낙폭 |
+| 주기 | `gap.fv_total` | `gap.shortfall` | `risk.vol_annual_pct` | `risk.mdd_pct` |
 |---|---|---|---|---|
-| 월별 | 5,240만 | +240만 | 0.268 | -39.8% |
-| 분기별 | 5,310만 | +310만 | 0.274 | -41.2% |
-| 반기별 | 5,180만 | +180만 | 0.281 | -43.5% |
+| M | 5,240만 | −240만 (초과) | 26.8 | 39.8 |
+| Q | 5,310만 | −310만 (초과) | 27.4 | 41.2 |
+| H | 5,180만 | −180만 (초과) | 28.1 | 43.5 |
 
 **반드시 포함**
-- **`risk_profile`이 CONSERVATIVE이므로 목표 달성보다 낙폭을 먼저 서술** (KAN-12 원칙 4)
-- 최대낙폭 -41.2%를 **금액으로 환산**해 설명 (예: 4,000만원 → 2,350만원)
+- **`derived.propensity_label`이 안정형이므로 목표 달성보다 낙폭을 먼저 서술** (KAN-12 원칙 4 — 라벨은 입력이 아니라 배분율 파생값)
+- `mdd_pct` 41.2를 **그대로 인용**하고 "고점 대비 이만큼 줄어든 시점이 있었다"로 설명. **금액 환산 금지** — 옛 서술의 "4,000만원 → 2,350만원"은 A1 위반이라 삭제(9/3)
 - 회복 기간이 분석에 없다는 사실을 명시
 
 **금지** — 공통 + 성향에 따라 **다른 행동을 제안하는 것**. "보수적이시니 채권 비중을
 늘리세요"는 실패다. 성향은 서술 순서만 바꾼다.
 
-**통과 기준** — 공통 A 전부 + 낙폭이 목표 달성보다 먼저 등장 + 금액 환산 포함
+**통과 기준** — 공통 A 전부 + 낙폭이 목표 달성보다 먼저 등장 + `mdd_pct` 인용(환산 없음)
 + `next_actions`가 케이스 1과 동일한 enum 범위 안에 있음
 
 ---
 
 ## 케이스 5 — 주기별 결과 차이가 거의 없는 사용자
 
-**입력**
+**입력** (예시값)
 ```
-목표 3,000만원 / 60개월 / 초기 500만원 / 월 35만원 / MODERATE
-비중 채권 0.7, 국내주식 0.2, 해외주식 0.1 / selected: SEMIANNUAL
+goal.amount 3,000만 / goal.horizon_months 60 / funds.initial 500만 / funds.monthly 35만
+alloc.initial invest 50 · safe 50 · other 0 / alloc.monthly invest 50 · safe 50 · other 0  → propensity_label 중립형
+portfolio KR_BOND 70 · KR_EQ 20 · US_EQ 10 / rebalancing.focus H
 ```
 
-**시뮬레이터 결과 요약**
+**시뮬레이터 결과 요약** (예시값)
 
-| 주기 | 최종자산 | 간극 | 누적비용 | 최대낙폭 |
+| 주기 | `gap.fv_total` | `gap.shortfall` | `cum_cost` | `risk.mdd_pct` |
 |---|---|---|---|---|
-| 월별 | 2,864만 | -136만 | 9.2만 | -7.1% |
-| 분기별 | 2,871만 | -129만 | 3.4만 | -7.3% |
-| 반기별 | 2,868만 | -132만 | 1.8만 | -7.6% |
+| M | 2,864만 | +136만 (부족) | 9.2만 | 7.1 |
+| Q | 2,871만 | +129만 (부족) | 3.4만 | 7.3 |
+| H | 2,868만 | +132만 (부족) | 1.8만 | 7.6 |
 
 **반드시 포함**
-- **차이가 유의하지 않다는 것을 수치로 말할 것** (최종자산 차이 최대 7만원 = 0.24%)
+- **차이가 유의하지 않다는 것을 입력 수치로 말할 것** — 세 주기의 `fv_total`을 나란히 인용. "차이 7만원 = 0.24%" 같은 뺄셈·비율은 A1 위반
 - 그럼에도 세 주기를 모두 서술 (A9)
 - 주기보다 다른 변수가 영향이 크다는 점을 조정 가능한 입력으로 연결
 
@@ -198,57 +206,58 @@ AI 설명이 계산 근거를 벗어나지 않고, 사용자에게 이해 가능
 **이 케이스는 AI 설명 테스트가 아니다.** AI가 호출되기 전에 입력 검증에서 걸러지는
 API 오류 규약 테스트다. 티켓에 함께 적혀 있어 여기 두지만, 판정 기준이 다르다.
 
-> **⚠️ KAN-17 수용 기준과 충돌한다 — 권도윤 확인 필요**
+> **✅ 해소 (2026-09-03 14:18, 권도윤 KAN-13 댓글)** — "입력 오류 케이스 6(필수값·비중합계·주기·유니버스)은
+> **KAN-4의 API 검증 소관으로 이관**해 KAN-17의 AI 품질 게이트를 막지 않는다." 내 9/2 제안(케이스 1~5로 축소)이 수용됐다.
 >
-> KAN-17 수용 기준이 "KAN-13 테스트 케이스가 **모두** 통과한다"인데, **케이스 6은
-> ai-service가 통과시킬 수 없다.** 입력 검증은 Spring 백엔드가 수행하고, ai-service는
-> 그 단계에 관여하지 않기 때문이다. ai-service 입장에서 이 케이스는 "내가 호출되지
-> 않았다"를 확인하는 것이라 자기 테스트로 성립하지 않는다.
->
-> **제안**: KAN-17 수용 기준을 **「케이스 1~5 통과」**로 좁히고, 케이스 6은 백엔드 통합
-> 테스트나 KAN-14 수용 테스트로 옮긴다. 케이스 6 자체는 KAN-13 티켓이 요구한 항목이므로
-> 이 문서에는 그대로 둔다.
+> 이관 후 판정 주체: 공개 API 입력 계약 [`explainer/public_api.py`](../explainer/public_api.py)의 `PlanInputs`가
+> 6-a `WEIGHTS_SUM` · 6-b 필수값 누락 · 6-c `NO_FUNDS` · 6-d `focus` 누락 · 6-e `ASSET_NOT_IN_CATALOG`를 거부하고,
+> [`tests/test_public_api.py`](../tests/test_public_api.py)가 다섯 건을 이 이름으로 검사한다. Spring이 같은 코드를 내면
+> 프론트 분기가 맞는다(→ `docs/KAN-04` §3 오류 코드 표). 아래 6-a~6-e 서술은 그 입력 예시로 유지한다.
+
+응답 모양은 `docs/KAN-04` §3 오류 봉투 — `400 {code: "VALIDATION_ERROR", retryable: false, errors: [{code, field, message}]}`.
+아래 "기대"의 코드는 `errors[].code`다 (`docs/openapi/examples/error.validation.json`).
 
 **입력 6-a — 비중 합계 불일치**
 ```
-비중 국내주식 0.5, 해외주식 0.3, 채권 0.15   (합계 0.95)
+portfolio.assets: KR_EQ 50 · US_EQ 30 · KR_BOND 15   (합 95)
 ```
-기대: `400 WEIGHT_SUM_INVALID`
-메시지: "자산 비중의 합이 100%가 되어야 합니다. 현재 합계는 95%입니다."
+기대: `WEIGHTS_SUM`, `field: "portfolio.assets"`
+메시지: "자산 비중의 합이 100이어야 합니다."
 
 **입력 6-b — 필수값 누락**
 ```
-monthly_contribution 없음
+funds.monthly 없음
 ```
-기대: `400 VALIDATION_FAILED`, `fields[0].field == "monthly_contribution"`
+기대: 필수 필드 누락, `field: "funds.monthly"`
 
 **입력 6-c — 자금 없음**
 ```
-initial_investment 0, monthly_contribution 0
+funds.initial 0, funds.monthly 0
 ```
-기대: `400 NO_FUNDS` (KAN-9 코드명)
+기대: `NO_FUNDS` (KAN-9 코드명)
 
 **입력 6-d — 강조 주기(focus) 미지정**
 ```
-focus 없음 (KAN-9의 rebalancing.focus는 선택 필드)
+rebalancing.focus 없음
 ```
-기대: **오류가 아니다.** ai-service는 설명을 생성하되 C10을 WARN으로 낮추고
-`highlighted_period: null`을 반환한다. PRD 수용기준 4("선택된 주기 포함")는 focus가 있을 때만 검증한다.
-근거: KAN-9 §2에서 focus는 선택. 노션 인프라 문서 기준 focus는 §5 출력에 에코되지 않아
-backend가 `/rag/answer` 요청에 함께 넘긴다 (KAN-9 반영 요청).
+기대 (공개 API, Spring): **`FOCUS_INVALID` — 필수.** 노션 「프론트-백엔드 계약 정리」 §1(도윤 9/3): "필수 — FOCUS_INVALID.
+계산은 3주기 전부, 화면·AI에서 강조". `public_api.Rebalancing.focus`도 필수다.
+ai-service 내부(`/rag/answer`)는 방어적으로 `focus` 없이도 동작한다 — C10 WARN, `highlighted_period: null`. 공개 API가
+막으므로 실제로는 도달하지 않는 경로다.
 
 **입력 6-e — 카탈로그 밖 자산**
 ```
-portfolio.assets: REAL_ESTATE 50, KR_EQ 50
+portfolio.assets: REAL_ESTATE 50 · KR_EQ 50
 ```
-기대: `ASSET_NOT_IN_CATALOG` (KAN-9·KAN-11 코드명)
+기대: `ASSET_NOT_IN_CATALOG` (KAN-9·KAN-11 코드명). Spring 정적 검증(`public_api.CATALOG`)이 먼저 잡으면 `errors[]` 안에,
+엔진까지 갔다면 봉투 최상위 `code`로 — 코드명은 같다.
 근거: PRD Not To Do가 부동산·보험·대출을 자산 범위 밖으로 둔다.
 
 **통과 기준**
 - AI 설명 엔드포인트가 **호출되지 않았을 것** (호출 로그로 확인)
-- 오류 응답에 `code`, `message`, `retryable` 세 필드가 모두 있을 것
+- 오류 응답이 `ErrorEnvelope` 모양일 것 — `code`·`message`·`retryable` 필수, 검증 오류는 `errors[]`
 - `message`가 사용자에게 그대로 보여줄 수 있는 문장일 것 (스택트레이스·필드명 노출 실패)
-- `retryable: true`
+- `retryable: false` — 입력 수정을 요구하는 오류이므로 재시도 버튼이 아니라 입력 화면으로
 
 ---
 
@@ -261,11 +270,11 @@ portfolio.assets: REAL_ESTATE 50, KR_EQ 50
 | 3 비용 과다 | A1~A14 | B1 | 한쪽 지표만 보고 우열 판정 |
 | 4 낙폭 높음 | A1~A14 | B1, B2 | 성향에 따른 차별적 조언 |
 | 5 차이 미미 | A1~A14 | **B1 엄격** | 억지 결론 생성 |
-| 6 입력 오류 | 오류 규약 | — | AI 도달 전 차단 실패 |
+| 6 입력 오류 (→ KAN-4) | `test_public_api` 6-a~e | — | AI 도달 전 차단 실패 |
 
 **판정 주체가 다르다.** 케이스 1~5는 ai-service가 자체 검증기로 판정하고, 케이스 6은
-Spring 백엔드의 입력 검증이 판정한다. KAN-17 수용 기준은 앞의 다섯 건만 해당한다
-(위 케이스 6 절의 확인 요청 참조).
+KAN-4 공개 API 입력 검증(`public_api.PlanInputs`, Spring이 구현)이 판정한다. KAN-17 수용 기준은
+앞의 다섯 건만 해당한다 (도윤 9/3 14:18 게이트 분리 확정).
 
 ### 티켓 수용 기준 대조
 
@@ -306,7 +315,7 @@ KAN-9 자산 카탈로그의 **코드**(`KR_EQ`·`US_EQ`·`KR_BOND`)를 쓴다.
 |---|---|---|
 | 1 | `case1_small_gap.json` + `case1_response_good.json` | **KAN-11 골든 P0 값으로 교체 완료** (2021-08~2026-07, 목표 초과). 승준 `golden_P0.json` 원본 수령 시 trajectory까지 갈아끼움 |
 | 2~5 | — | **미작성.** 승준 골든 P1~P5(노션 KAN-11 §5)를 원본으로 쓸 수 있음 |
-| 6 입력 오류 | — | Spring 입력 검증 소관. KAN-17 수용기준에서 제외 제안 |
+| 6 입력 오류 | `tests/test_public_api.py` (6-a~6-e) | **KAN-4로 이관 확정** (9/3). `public_api.PlanInputs`가 거부, 5건 통과 |
 | 규칙 5·6 검출 | `tests/test_guardrail.py` | **작성 완료** — A11·A12 케이스 각 1건, 통과 |
 
 티켓 의존성이 "시뮬레이터 완성 전에는 예시 JSON으로 테스트 구조를 작성"이므로 지금은

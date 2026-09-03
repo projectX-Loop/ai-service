@@ -214,25 +214,6 @@ def _claims(exp: Explanation) -> list[tuple[str, str, list[str]]]:
     """(위치, 텍스트, evidence) 평탄화."""
     items: list[tuple[str, str, list[str]]] = [
         ("summary", exp.summary.text, exp.summary.evidence),
-        ("goal_gap", exp.goal_gap.text, exp.goal_gap.evidence),
-    ]
-    for i, fc in enumerate(exp.frequency_comparison):
-        items.append((f"frequency_comparison[{i}].observation", fc.observation, fc.evidence))
-        items.append((f"frequency_comparison[{i}].tradeoff", fc.tradeoff, fc.evidence))
-    for i, rf in enumerate(exp.risk_factors):
-        items.append((f"risk_factors[{i}]", f"{rf.title} {rf.detail}", rf.evidence))
-    for i, na in enumerate(exp.next_actions):
-        items.append((f"next_actions[{i}]", na.text, na.evidence))
-    return items
-
-
-# ─────────────────────────────────────────── 본 검사
-
-
-def _claims(exp: Explanation) -> list[tuple[str, str, list[str]]]:
-    """(위치, 텍스트, evidence) 평탄화."""
-    items: list[tuple[str, str, list[str]]] = [
-        ("summary", exp.summary.text, exp.summary.evidence),
         ("assumptions_note", exp.assumptions_note.text, exp.assumptions_note.evidence),
     ]
     for p, pc in exp.per_period_pros_cons.items():
