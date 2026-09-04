@@ -1,5 +1,5 @@
 # ai-service — Spring이 내부 HTTP로 호출하는 AI 설명 서비스 (KAN-17)
-FROM python:3.12-slim
+FROM python:3.14-slim   # 승준 엔진(engine/) 기준 Python 3.14. 로컬 venv와 동일
 
 WORKDIR /app
 
@@ -8,6 +8,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY explainer/ ./explainer/
+COPY engine/ ./engine/
+COPY knowledge/ ./knowledge/
 COPY run.py .
 COPY fixtures/ ./fixtures/
 

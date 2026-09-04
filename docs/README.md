@@ -19,7 +19,7 @@ Jira · Notion   ← 유일한 기준(SSOT). 요구사항·계약·ERD·회의 �
 | [KAN-13-테스트세트.md](KAN-13-테스트세트.md) | KAN-13 | 품질 테스트 **케이스 6종(1~5 실측 픽스처) + 공통 검사 A1~A18 + 승준 검출 T1~T21** | `tests/test_guardrail.py` `fixtures/` | "이 응답이 통과인지 어떻게 판정하나" |
 | [KAN-15-지식문서.md](KAN-15-지식문서.md) | KAN-15 | **개념 8개 ↔ 문서 ↔ 출처·라이선스 매핑**, 작성 규칙 | `../knowledge/*.md` | "이 개념의 출처가 뭐냐", "문서를 어떻게 쓰나" |
 | [KAN-16-지식저장소.md](KAN-16-지식저장소.md) | KAN-16 | **청킹·임베딩·인덱스 선택 근거**, 검색 결합 | `knowledge/*.py` `db/` `scripts/` | "왜 600자, 왜 HNSW, 청크는 어떻게 고르나" |
-| [KAN-17-내부HTTP계약.md](KAN-17-내부HTTP계약.md) | KAN-17 | **`POST /rag/answer` 요청·응답 규약**, 예시 JSON 정상·실패 | `api.py` `client.py` `Dockerfile` | "Spring에서 어떻게 부르나", "status가 뭐가 있나" |
+| [KAN-17-내부HTTP계약.md](KAN-17-내부HTTP계약.md) | KAN-17 | **`POST /calculate`(승준 엔진 어댑터)·`POST /rag/answer` 요청·응답 규약**, 예시 JSON 정상·실패, 실측 | `api.py` `client.py` `Dockerfile` | "Spring에서 어떻게 부르나", "status가 뭐가 있나" |
 
 ## 이 폴더에 없는 것
 

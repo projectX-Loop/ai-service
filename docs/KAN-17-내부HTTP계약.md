@@ -8,8 +8,26 @@
 
 | 메서드·경로 | 용도 |
 |---|---|
+| `POST /calculate` | **Kan-9 §2 입력 dict → §5 결과 JSON** (승준 엔진 `engine/`, M/Q/H 전부 한 응답). 노션 §4 · 9/4 |
 | `POST /rag/answer` | 시뮬레이션 결과 JSON → AI 설명 |
-| `GET /health` | docker compose healthcheck. 모델·키 유무·retriever 종류 |
+| `GET /health` | docker compose healthcheck. 모델·키 유무·retriever 종류 · **엔진 `data_hash`**(스냅샷 정합성) |
+
+## `POST /calculate` — 계산 (9/4, 노션 §4 확정: "3주기 계산 배치는 ai-service가 전부 수행")
+
+**경계**: `engine/`(승준 — `engine.py`·`dataset.py`·`cashflow.py`·`errors.py` + `data/` 스냅샷 6개, LSJ `v0.3/src/core` 사본, 표준 라이브러리만) ↔ `explainer/calculate.py`(종현 — 기동 시 `Dataset` 1회 로드, `now` 주입, 예외 → HTTP). 엔진 코드는 승준만 고친다. `analyze()` 입출력 모양이 바뀌면 사전 통지.
+
+| 항목 | 내용 |
+|---|---|
+| 요청 | Kan-9 §2 입력 dict **그대로** (Spring이 검증·저장 후 변환 없이 전달). 예: `fixtures/inputs/P0.json` |
+| 검증 | **엔진이 한다.** 정적 오류 여러 개 → 데이터 의존 오류 첫 것. ai-service는 덧붙이지 않는다(v0.3 필드 거부 `UNSUPPORTED_FIELD`는 Spring 소관) |
+| 200 | §5 출력 그대로 (`status` OK \| NO_PLAN_FUNDS). `public_api.Calculation`과 동일 모양 |
+| 422 | `{"code":"VALIDATION_ERROR","retryable":false,"errors":[{code,field,message}…]}` — 엔진 오류 코드 그대로. Spring은 400으로 변환해 그대로 전달 |
+| 500 | `{"code":"CALCULATION_FAILED","retryable":true}` — 엔진 예외. Spring은 502 |
+| 503 | `{"code":"ENGINE_UNAVAILABLE","retryable":true}` — `engine/` 미배치·스냅샷 해시 불일치 |
+| 시간 | 60개월 1~2ms, 120개월+ΔM+연장 ≤ 약 210ms (승준 실측). Spring 타임아웃 10초면 충분 |
+| 스냅샷 정합성 | `GET /health`의 `engine.data_hash`와 Spring `data_snapshot(is_current).data_hash`가 같아야 한다. 9/6 동결 시 승준이 `engine/data/` 6개 덮어쓰기 → 해시 변경 → 도윤 DB 행 갱신 → 이미지 재빌드 |
+
+`tests/test_calculate.py` — 골든 P0 원 단위 deep-equal · 공개 계약 `Calculation` 파싱 · 예시 `plans.response.P0.calculation` 일치 · 오류 코드 5종 · 결정론 · P1 현금흐름. `engine/`이 비어 있으면 503 경로만 검사하고 통과.
 
 ## 요청 — `POST /rag/answer`
 
@@ -247,7 +265,9 @@
 ## 내부 동작
 
 ```
-요청 JSON → schema.SimulationInput (extra=ignore)
+[/calculate]  입력 dict → calculate.run() → engine.analyze(inputs, dataset, now) → §5 출력 / ValidationError → 422
+
+[/rag/answer] 요청 JSON → schema.SimulationInput (extra=ignore)
    → retrieve.concept_tags_for(): 결과 필드 → 개념 태그 (결정론)
    → FileRetriever / DbRetriever: 청크 검색
    → prompt.build_user_message(결과, 청크) → Gemini Flash (구조화 출력)
@@ -257,7 +277,7 @@
 
 ## 배포
 
-- `Dockerfile` — `uvicorn explainer.api:app --port 8000`, healthcheck 포함. 비밀값 미포함
+- `Dockerfile` — `python:3.14-slim`(승준 엔진 기준) · `explainer/`·`engine/`·`knowledge/` 복사 · `uvicorn explainer.api:app --port 8000`, healthcheck 포함. 비밀값 미포함
 - `docker-compose.ai-service.yml` — 도윤 compose에 붙일 조각 (`db` + `ai-service`). 형태는 도윤 compose 받은 뒤 맞춤
 - 환경변수: `GEMINI_API_KEY` `GEMINI_MODEL` `DATABASE_URL` `EMBEDDING_MODEL` `EMBEDDING_DIM`. 배포 시 SSM `/loop/mvp/*`에서 주입
 

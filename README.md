@@ -8,7 +8,9 @@ Spring 백엔드가 내부 HTTP로 호출한다. 설계 문서는 [`docs/README.
 ## 구조
 
 ```
+engine/            승준 KAN-11 계산 엔진 (LSJ v0.3/src/core 사본 + data/ 스냅샷). 승준만 수정. engine/README.md
 explainer/
+  calculate.py     POST /calculate 어댑터 — 기동 시 Dataset 1회 로드, ValidationError → 422
   schema.py        입력(KAN-9 §5) · 출력(KAN-9 §7 + evidence) 스키마. Pydantic
   prompt.py        시스템 프롬프트 (docs/KAN-12와 글자 단위 일치)
   guardrail.py     검증기 C2~C13. 이 프로젝트의 핵심
@@ -18,7 +20,7 @@ explainer/
   knowledge/       chunking · embedding · store(pgvector) · retrieve(결과 필드 → 개념 청크)
 knowledge/         RAG 원재료 — 개념 문서 8개. 코드가 읽는 데이터 (KAN-15)
 fixtures/          케이스 1~5 입력(승준 골든 P0·실험 X01f·X14c·X16d·X03a 실측) + t/ 검출용 6개 + 정상 응답 1. 목록 fixtures/FIXTURES.md
-tests/             guardrail 27 · knowledge 45 · retrieve 18 · explain 10 · public_api 47 — 전부 LLM·DB 호출 없음
+tests/             guardrail 27 · knowledge 45 · retrieve 18 · explain 10 · public_api 47 · calculate 15 — 전부 LLM·DB 호출 없음
 scripts/           ingest.py(적재) · search.py(검색 평가) · export_openapi.py(OpenAPI 생성)
 db/                V1__knowledge.sql — knowledge_* 스키마. backend Flyway로 이관 예정
 docs/              설계 문서 6개 (KAN-04·12·13·15·16·17) + 인덱스 + openapi/(공개·내부 OpenAPI, 예시 JSON 13개)
@@ -35,7 +37,7 @@ python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 **키·DB 없이 — 전부 돈다** (검증기·청킹·검색 파일 폴백·가짜 Gemini)
 
 ```bash
-for t in guardrail knowledge retrieve explain public_api; do ./.venv/bin/python tests/test_$t.py; done
+for t in guardrail knowledge retrieve explain public_api calculate; do ./.venv/bin/python tests/test_$t.py; done
 ./.venv/bin/python run.py fixtures/case1_small_gap.json --check fixtures/case1_response_good.json
 ./.venv/bin/python scripts/ingest.py --dry-run
 ./.venv/bin/python scripts/export_openapi.py          # docs/openapi/*.json 재생성 (계약 바꿨을 때)
@@ -60,8 +62,9 @@ export GEMINI_API_KEY=...
 
 | 엔드포인트 | 용도 |
 |---|---|
+| `POST /calculate` | Kan-9 §2 입력 dict → §5 결과 JSON. 승준 엔진 `engine/` (9/4) |
 | `POST /rag/answer` | KAN-11 결과 JSON (+ `focus`, `goal_amount`) → AI 설명 |
-| `GET /health` | healthcheck. 모델명 · 키 유무 · retriever 종류 |
+| `GET /health` | healthcheck. 모델명 · 키 유무 · retriever 종류 · 엔진 `data_hash` |
 
 **응답 규약** — 처리가 끝나면 **항상 200**, 설명이 나왔는지는 `status`로 구분. Spring이 예외 분기 없이 결과 화면을 그릴 수 있게.
 

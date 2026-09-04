@@ -162,9 +162,23 @@ def build_internal() -> dict:
     body = spec["paths"]["/rag/answer"]["post"]["requestBody"]["content"]["application/json"]
     body["schema"] = _ref(SimulationInput)
     body["examples"] = {"case1_small_gap": {"value": json.loads((ROOT / "fixtures/case1_small_gap.json").read_text(encoding="utf-8"))}}
+    # /calculate — 요청 = Kan-9 §2 입력 dict(공개 PlanInputs 와 같은 모양), 응답 = Calculation(§5)
+    from explainer.public_api import PlanInputs, Calculation
+    _, cdefs = models_json_schema([(PlanInputs, "validation"), (Calculation, "validation")], ref_template=REF)
+    spec["components"]["schemas"].update(cdefs["$defs"])
+    calc = spec["paths"]["/calculate"]["post"]
+    cbody = calc["requestBody"]["content"]["application/json"]
+    cbody["schema"] = _ref(PlanInputs)
+    cbody["examples"] = {"P0": {"value": json.loads((ROOT / "fixtures/inputs/P0.json").read_text(encoding="utf-8"))}}
+    calc["responses"] = {
+        "200": {"description": "Kan-9 §5 출력 (M/Q/H 전부)", "content": {"application/json": {"schema": _ref(Calculation)}}},
+        "422": {"description": "엔진 검증 실패 — {code: VALIDATION_ERROR, errors: [{code, field, message}]}. Spring은 400으로 변환"},
+        "500": {"description": "CALCULATION_FAILED — Spring은 502"},
+        "503": {"description": "ENGINE_UNAVAILABLE — engine/ 미배치"},
+    }
     spec["info"]["description"] = (
         "Spring ↔ ai-service 내부 계약. 요청 = KAN-11 analyze() 출력 + focus + goal_amount. "
-        "처리가 끝나면 항상 200 + status, 입력 불일치만 422. 상세: docs/KAN-17-내부HTTP계약.md"
+        "처리가 끝나면 항상 200 + status, 입력 불일치만 422. POST /calculate 는 Kan-9 §2 입력 → §5 출력(승준 엔진). 상세: docs/KAN-17-내부HTTP계약.md"
     )
     return spec
 

@@ -3,7 +3,7 @@
   "info": {
     "title": "ai-service",
     "version": "0.1.0",
-    "description": "Spring ↔ ai-service 내부 계약. 요청 = KAN-11 analyze() 출력 + focus + goal_amount. 처리가 끝나면 항상 200 + status, 입력 불일치만 422. 상세: docs/KAN-17-내부HTTP계약.md"
+    "description": "Spring ↔ ai-service 내부 계약. 요청 = KAN-11 analyze() 출력 + focus + goal_amount. 처리가 끝나면 항상 200 + status, 입력 불일치만 422. POST /calculate 는 Kan-9 §2 입력 → §5 출력(승준 엔진). 상세: docs/KAN-17-내부HTTP계약.md"
   },
   "paths": {
     "/health": {
@@ -22,6 +22,89 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/calculate": {
+      "post": {
+        "summary": "Calculate",
+        "description": "Kan-9 §2 입력 dict 그대로 → 승준 analyze() → §5 출력 그대로 (M/Q/H 전부, 한 응답).\n\n검증은 엔진이 한다(정적 오류 여러 개 → 데이터 의존 오류 첫 것). ai-service 는 덧붙이지 않는다.\n  200  §5 출력 (status OK | NO_PLAN_FUNDS)\n  422  {\"code\":\"VALIDATION_ERROR\",\"errors\":[{code,field,message}…]}  — Spring이 400으로 변환해 그대로 전달\n  500  {\"code\":\"CALCULATION_FAILED\"}                                  — Spring은 502 CALCULATION_FAILED\n  503  {\"code\":\"ENGINE_UNAVAILABLE\"}                                  — engine/ 미배치·스냅샷 로드 실패",
+        "operationId": "calculate_calculate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanInputs"
+              },
+              "examples": {
+                "P0": {
+                  "value": {
+                    "goal": {
+                      "amount": 50000000,
+                      "horizon_months": 60
+                    },
+                    "funds": {
+                      "initial": 10000000,
+                      "monthly": 600000
+                    },
+                    "alloc": {
+                      "initial": {
+                        "invest": 70,
+                        "safe": 30,
+                        "other": 0
+                      },
+                      "monthly": {
+                        "invest": 50,
+                        "safe": 40,
+                        "other": 10
+                      }
+                    },
+                    "portfolio": {
+                      "assets": [
+                        {
+                          "code": "KR_EQ",
+                          "weight": 40
+                        },
+                        {
+                          "code": "US_EQ",
+                          "weight": 40
+                        },
+                        {
+                          "code": "KR_BOND",
+                          "weight": 20
+                        }
+                      ]
+                    },
+                    "rebalancing": {
+                      "focus": "Q"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Kan-9 §5 출력 (M/Q/H 전부)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Calculation"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "엔진 검증 실패 — {code: VALIDATION_ERROR, errors: [{code, field, message}]}. Spring은 400으로 변환"
+          },
+          "500": {
+            "description": "CALCULATION_FAILED — Spring은 502"
+          },
+          "503": {
+            "description": "ENGINE_UNAVAILABLE — engine/ 미배치"
           }
         }
       }
@@ -2629,6 +2712,223 @@
           "months"
         ],
         "title": "Window",
+        "type": "object"
+      },
+      "Alloc": {
+        "additionalProperties": false,
+        "properties": {
+          "initial": {
+            "$ref": "#/components/schemas/AllocSplit",
+            "description": "합 100 아니면 ALLOC_SUM_INITIAL"
+          },
+          "monthly": {
+            "$ref": "#/components/schemas/AllocSplit",
+            "description": "합 100 아니면 ALLOC_SUM_MONTHLY"
+          }
+        },
+        "required": [
+          "initial",
+          "monthly"
+        ],
+        "title": "Alloc",
+        "type": "object"
+      },
+      "AllocSplit": {
+        "additionalProperties": false,
+        "description": "자금 배분율. 정수 퍼센트, 합 100. '투자 성향' 입력은 없고 이 배분율에서 파생된다 (Kan-9 확정 ⑪).",
+        "properties": {
+          "invest": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Invest",
+            "type": "integer"
+          },
+          "safe": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Safe",
+            "type": "integer"
+          },
+          "other": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Other",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "invest",
+          "safe",
+          "other"
+        ],
+        "title": "AllocSplit",
+        "type": "object"
+      },
+      "AssetWeight": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "Kan-9 카탈로그 코드 (KR_EQ · US_EQ · KR_BOND · US_EQ_KR). 밖이면 ASSET_NOT_IN_CATALOG",
+            "title": "Code",
+            "type": "string"
+          },
+          "weight": {
+            "description": "정수 퍼센트. 0 < w ≤ 100 아니면 PORTFOLIO_WEIGHT_RANGE",
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "weight"
+        ],
+        "title": "AssetWeight",
+        "type": "object"
+      },
+      "Calculation": {
+        "description": "ai-service POST /calculate 응답 = KAN-11 analyze() 출력 그대로 (Kan-9 §5). 백엔드는 가공·저장하지 않는다.\n\n`schema.SimulationInput` 과 같은 모양에서 `focus`·`goal_amount` 만 없다 — 그 둘은 Spring이\nPOST /rag/answer 를 부를 때 덧붙이는 값이라 공개 응답에는 나오지 않는다.",
+        "properties": {
+          "status": {
+            "default": "OK",
+            "title": "Status",
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "derived": {
+            "$ref": "#/components/schemas/Derived"
+          },
+          "per_period": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PeriodResult"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/Period"
+            },
+            "title": "Per Period",
+            "type": "object"
+          }
+        },
+        "required": [
+          "meta",
+          "per_period"
+        ],
+        "title": "Calculation",
+        "type": "object"
+      },
+      "Funds": {
+        "additionalProperties": false,
+        "properties": {
+          "initial": {
+            "description": "초기 투자금 KRW. 음수 → FUNDS_INITIAL_RANGE",
+            "minimum": 0,
+            "title": "Initial",
+            "type": "integer"
+          },
+          "monthly": {
+            "description": "월 납입액 KRW (상수). 음수 → FUNDS_MONTHLY_RANGE. initial·monthly 동시 0 → NO_FUNDS",
+            "minimum": 0,
+            "title": "Monthly",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "initial",
+          "monthly"
+        ],
+        "title": "Funds",
+        "type": "object"
+      },
+      "Goal": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "목표 금액 KRW. 범위 밖 → GOAL_AMOUNT_RANGE",
+            "maximum": 10000000000,
+            "minimum": 1000000,
+            "title": "Amount",
+            "type": "integer"
+          },
+          "horizon_months": {
+            "description": "목표 기간(개월). 범위 밖 → GOAL_HORIZON_RANGE",
+            "maximum": 120,
+            "minimum": 12,
+            "title": "Horizon Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "amount",
+          "horizon_months"
+        ],
+        "title": "Goal",
+        "type": "object"
+      },
+      "PlanInputs": {
+        "additionalProperties": false,
+        "description": "POST /plans 요청 본문 = Kan-9 §2 입력 dict 그대로. Spring은 변환 없이 ai-service POST /calculate 에 넘긴다.",
+        "properties": {
+          "goal": {
+            "$ref": "#/components/schemas/Goal"
+          },
+          "funds": {
+            "$ref": "#/components/schemas/Funds"
+          },
+          "alloc": {
+            "$ref": "#/components/schemas/Alloc"
+          },
+          "portfolio": {
+            "$ref": "#/components/schemas/Portfolio"
+          },
+          "rebalancing": {
+            "$ref": "#/components/schemas/Rebalancing"
+          }
+        },
+        "required": [
+          "goal",
+          "funds",
+          "alloc",
+          "portfolio",
+          "rebalancing"
+        ],
+        "title": "PlanInputs",
+        "type": "object"
+      },
+      "Portfolio": {
+        "additionalProperties": false,
+        "properties": {
+          "assets": {
+            "description": "1~3개, weight 합 100 (WEIGHTS_SUM), code 중복 불가 (PORTFOLIO_ASSET_DUP)",
+            "items": {
+              "$ref": "#/components/schemas/AssetWeight"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Assets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "assets"
+        ],
+        "title": "Portfolio",
+        "type": "object"
+      },
+      "Rebalancing": {
+        "additionalProperties": false,
+        "properties": {
+          "focus": {
+            "$ref": "#/components/schemas/Period",
+            "description": "강조 주기 M/Q/H. 필수 — FOCUS_INVALID. 계산은 세 주기 전부, 화면·AI에서 강조"
+          }
+        },
+        "required": [
+          "focus"
+        ],
+        "title": "Rebalancing",
         "type": "object"
       }
     }

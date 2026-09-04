@@ -1,6 +1,7 @@
 """내부 HTTP 인터페이스 — Spring 백엔드가 호출한다 (KAN-17).
 
 계약 요약
+  POST /calculate    Kan-9 §2 입력 dict → §5 결과 JSON (승준 엔진 engine/, 3주기 전부). 노션 §4
   POST /rag/answer   시뮬레이션 결과 JSON → AI 설명
   GET  /health       docker compose healthcheck
 
@@ -22,6 +23,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
+from . import calculate as calc
 from . import client as llm
 from .knowledge.retrieve import default_retriever
 from .schema import Explanation, SimulationInput
@@ -50,7 +52,30 @@ def health() -> dict:
         "model": llm.MODEL,
         "credentials": llm.has_credentials(),
         "retriever": type(_retriever).__name__,
+        # 노션 §4 스냅샷 정합성: Spring이 data_snapshot(is_current).data_hash 와 대조한다. 엔진 없으면 null
+        "engine": calc.info(),
     }
+
+
+@app.post("/calculate")
+def calculate(inputs: dict) -> JSONResponse:
+    """Kan-9 §2 입력 dict 그대로 → 승준 analyze() → §5 출력 그대로 (M/Q/H 전부, 한 응답).
+
+    검증은 엔진이 한다(정적 오류 여러 개 → 데이터 의존 오류 첫 것). ai-service 는 덧붙이지 않는다.
+      200  §5 출력 (status OK | NO_PLAN_FUNDS)
+      422  {"code":"VALIDATION_ERROR","errors":[{code,field,message}…]}  — Spring이 400으로 변환해 그대로 전달
+      500  {"code":"CALCULATION_FAILED"}                                  — Spring은 502 CALCULATION_FAILED
+      503  {"code":"ENGINE_UNAVAILABLE"}                                  — engine/ 미배치·스냅샷 로드 실패
+    """
+    try:
+        return JSONResponse(status_code=200, content=calc.run(inputs))
+    except calc.InvalidInputs as e:
+        return JSONResponse(status_code=422, content={"code": "VALIDATION_ERROR", "retryable": False, "errors": e.errors})
+    except calc.EngineUnavailable as e:
+        log.error("engine unavailable: %s", e)
+        return JSONResponse(status_code=503, content={"code": "ENGINE_UNAVAILABLE", "retryable": True, "message": str(e)})
+    except calc.CalculationFailed as e:
+        return JSONResponse(status_code=500, content={"code": "CALCULATION_FAILED", "retryable": True, "message": str(e)})
 
 
 @app.post("/rag/answer", response_model=AnswerResponse, response_model_exclude_none=False)
