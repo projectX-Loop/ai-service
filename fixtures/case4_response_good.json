@@ -1,0 +1,127 @@
+{
+  "summary": {
+    "text": "2021-08~2026-07 시장이 그대로 반복된다면, 분기(Q) 리밸런싱 기준 만기 총자산은 5,881만원이며 목표 금액인 1억원 대비 4,118만원이 부족합니다.",
+    "evidence": [
+      "/meta/window/start",
+      "/meta/window/end",
+      "/per_period/Q/gap/fv_total",
+      "/goal_amount",
+      "/per_period/Q/gap/shortfall"
+    ]
+  },
+  "per_period_pros_cons": {
+    "M": {
+      "pros": [
+        {
+          "text": "최대 이탈율(목표 비중과의 차이)이 16.53%로 가장 낮게 유지됩니다.",
+          "evidence": [
+            "/per_period/M/risk/max_drift_pct"
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "text": "누적 거래 비용이 38,082원으로 세 주기 중 가장 많이 발생하며 만기 총자산은 5,835만원입니다.",
+          "evidence": [
+            "/per_period/M/cum_cost",
+            "/per_period/M/gap/fv_total"
+          ]
+        }
+      ]
+    },
+    "Q": {
+      "pros": [
+        {
+          "text": "월 리밸런싱보다 적은 28,803원의 누적 거래 비용으로 만기 총자산 5,881만원을 달성합니다.",
+          "evidence": [
+            "/per_period/Q/cum_cost",
+            "/per_period/Q/gap/fv_total"
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "text": "최대 이탈율이 24.34%로 월 리밸런싱(16.53%)보다 높고, 최대 낙폭은 13.79%입니다.",
+          "evidence": [
+            "/per_period/Q/risk/max_drift_pct",
+            "/per_period/M/risk/max_drift_pct",
+            "/per_period/Q/risk/mdd_pct"
+          ]
+        }
+      ]
+    },
+    "H": {
+      "pros": [
+        {
+          "text": "누적 거래 비용이 26,408원으로 가장 작고, 최대 낙폭(고점 대비 최대 하락폭)도 13.71%로 가장 낮습니다.",
+          "evidence": [
+            "/per_period/H/cum_cost",
+            "/per_period/H/risk/mdd_pct",
+            "chunk:concept/max_drawdown#0"
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "text": "목표 비중에서 벗어나는 최대 이탈율이 35.23%로 세 주기 중 가장 큽니다.",
+          "evidence": [
+            "/per_period/H/risk/max_drift_pct"
+          ]
+        }
+      ]
+    }
+  },
+  "risks": [
+    {
+      "title": "최대 낙폭 (MDD)",
+      "detail": "분기(Q) 리밸런싱 기준 투자 기간 중 자산 가치가 고점 대비 가장 크게 떨어진 폭은 13.79%입니다.",
+      "evidence": [
+        "/per_period/Q/risk/mdd_pct",
+        "chunk:concept/max_drawdown#0"
+      ]
+    },
+    {
+      "title": "연환산 변동성 및 월간 최대 손실",
+      "detail": "분기(Q) 기준 연환산 변동성은 25.51%이며, 가장 하락 폭이 컸던 달의 손실률은 -19.10%입니다.",
+      "evidence": [
+        "/per_period/Q/risk/vol_annual_pct",
+        "/per_period/Q/risk/worst_month_pct",
+        "chunk:concept/annual_volatility#0"
+      ]
+    }
+  ],
+  "next_actions": [
+    {
+      "adjustable_input": "MONTHLY_CONTRIBUTION",
+      "text": "월 납입액을 556,769원 늘리면 목표 금액에 도달할 수 있습니다.",
+      "evidence": [
+        "/per_period/Q/gap/extra_monthly_required"
+      ]
+    },
+    {
+      "adjustable_input": "GOAL_HORIZON",
+      "text": "납입 기간을 45개월 더 연장하면 목표 금액 도달이 가능합니다.",
+      "evidence": [
+        "/per_period/Q/gap/months_extension"
+      ]
+    }
+  ],
+  "assumptions_note": {
+    "text": "본 결과는 2021-08부터 2026-07까지의 실제 월간 총수익률을 재생한 시뮬레이션입니다. 계좌 미지정으로 세금은 반영되지 않았으며(pre_tax 기준), 안전저축 연 금리는 2.96% 고정 평균값으로 계산되었습니다. 1주 단위 매수(lot_rounding)는 적용되지 않았으며, 데이터 기준 문구는 '실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지) · 안전저축 연 2.96%(기준 구간 정기예금 가중평균금리 평균 고정) · 납입 경로: funds.monthly 상수 (상수 반복) · 세금 제외'입니다.",
+    "evidence": [
+      "/meta/window/start",
+      "/meta/window/end",
+      "/meta/options/account",
+      "/per_period/Q/gap/basis",
+      "/meta/safe_rate_annual_pct",
+      "/meta/options/safe_rate_mode",
+      "/meta/options/lot_rounding",
+      "/meta/data_basis"
+    ]
+  },
+  "highlighted_period": "Q",
+  "retrieved_refs": [
+    "concept/max_drawdown#0",
+    "concept/annual_volatility#0"
+  ]
+}

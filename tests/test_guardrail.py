@@ -168,6 +168,15 @@ def main() -> int:
         with_summary("2021-08~2026-07 시장이 반복된다면 목표 5,000만원을 넘습니다.",
                      ["/meta/window/start", "/meta/window/end", "/goal_amount", "/cashflow/profile"]), False)
 
+    # ── 응답 픽스처 전수: caseN_response_good ↔ caseN 입력 (9/4 실호출 생성분 포함)
+    pairs = {"case1_small_gap": "case1", "case3_high_cost": "case3", "case4_high_drawdown": "case4", "case5_no_difference": "case5"}
+    for inp, tag in pairs.items():
+        rp = ROOT / f"fixtures/{tag}_response_good.json"
+        if not rp.exists():
+            continue
+        src_i = SimulationInput.model_validate(json.load(open(ROOT / f"fixtures/{inp}.json")))
+        run(f"픽스처 {tag}_response_good ↔ {inp} 통과", json.load(open(rp)), True, source=src_i)
+
     fails = [n for n, ok in results if not ok]
     print(f"\n=== {len(results) - len(fails)}/{len(results)} 통과 ===")
     return 1 if fails else 0

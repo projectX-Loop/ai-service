@@ -1,0 +1,129 @@
+{
+  "summary": {
+    "text": "2021-08~2026-07 시장이 그대로 반복된다면, 분기(Q) 리밸런싱 기준 만기 총자산은 8,250만원(82,504,424원)으로 목표 금액 50,000,000원 대비 32,504,424원 초과 달성합니다.",
+    "evidence": [
+      "/meta/window/start",
+      "/meta/window/end",
+      "/per_period/Q/gap/fv_total",
+      "/goal_amount",
+      "/per_period/Q/gap/shortfall"
+    ]
+  },
+  "per_period_pros_cons": {
+    "M": {
+      "pros": [
+        {
+          "text": "월(M) 주기는 최대 낙폭(MDD)이 8.23%로 세 주기 중 가장 작습니다.",
+          "evidence": [
+            "/per_period/M/risk/mdd_pct",
+            "chunk:concept/max_drawdown#0"
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "text": "월(M) 주기는 누적 거래비용이 51,519원으로 세 주기 중 가장 많이 발생합니다.",
+          "evidence": [
+            "/per_period/M/cum_cost",
+            "chunk:concept/transaction_cost#0"
+          ]
+        }
+      ]
+    },
+    "Q": {
+      "pros": [
+        {
+          "text": "분기(Q) 주기는 누적 거래비용이 33,311원으로 월 주기(51,519원)보다 적습니다.",
+          "evidence": [
+            "/per_period/Q/cum_cost",
+            "/per_period/M/cum_cost",
+            "chunk:concept/transaction_cost#0"
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "text": "분기(Q) 주기는 최대 낙폭(MDD)이 9.22%로 월 주기(8.23%)보다 큽니다.",
+          "evidence": [
+            "/per_period/Q/risk/mdd_pct",
+            "/per_period/M/risk/mdd_pct",
+            "chunk:concept/max_drawdown#0"
+          ]
+        }
+      ]
+    },
+    "H": {
+      "pros": [
+        {
+          "text": "반기(H) 주기는 누적 거래비용이 32,120원으로 세 주기 중 가장 적습니다.",
+          "evidence": [
+            "/per_period/H/cum_cost",
+            "chunk:concept/transaction_cost#0"
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "text": "반기(H) 주기는 최대 낙폭(MDD)이 11.71%로 세 주기 중 가장 큽니다.",
+          "evidence": [
+            "/per_period/H/risk/mdd_pct",
+            "chunk:concept/max_drawdown#0"
+          ]
+        }
+      ]
+    }
+  },
+  "risks": [
+    {
+      "title": "최대 낙폭 (MDD) 및 변동성",
+      "detail": "분기 리밸런싱 기준 투자 기간 중 자산 가치가 고점 대비 가장 크게 떨어진 폭(MDD)은 9.22%이며, 가장 하락 폭이 컸던 달의 수익률은 -12.27%, 연환산 변동성은 18.27%입니다.",
+      "evidence": [
+        "/per_period/Q/risk/mdd_pct",
+        "/per_period/Q/risk/worst_month_pct",
+        "/per_period/Q/risk/vol_annual_pct",
+        "chunk:concept/max_drawdown#0",
+        "chunk:concept/annual_volatility#0"
+      ]
+    },
+    {
+      "title": "환율 변동 위험",
+      "detail": "포트폴리오에 포함된 해외 주식 (SPY × USD/KRW)은 환노출 자산으로, 환율 변동이 원화 수익률에 직접 반영됩니다.",
+      "evidence": [
+        "/meta/assets_used/1/display_name"
+      ]
+    }
+  ],
+  "next_actions": [
+    {
+      "adjustable_input": "REBALANCING_FOCUS",
+      "text": "리밸런싱 주기를 변경하여 각 주기별 비용과 낙폭 차이를 비교할 수 있습니다.",
+      "evidence": [
+        "/focus"
+      ]
+    },
+    {
+      "adjustable_input": "GOAL_AMOUNT",
+      "text": "목표 금액 50,000,000원을 조정하여 새로운 목표 간극을 확인할 수 있습니다.",
+      "evidence": [
+        "/goal_amount"
+      ]
+    }
+  ],
+  "assumptions_note": {
+    "text": "이 결과는 2021-08~2026-07 기준 구간의 시장이 그대로 반복된다고 가정합니다. 데이터 기준: 실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지) · 안전저축 연 2.96%(기준 구간 정기예금 가중평균금리 평균 고정) · 납입 경로: 사용자 요약값 기반 12개월 프로파일 (상수 반복) · 세금 제외. account가 null이므로 세금 미반영이며, 예금금리 방식(safe_rate_mode)은 fixed_avg, 1주 단위 매수(lot_rounding)는 false입니다.",
+    "evidence": [
+      "/meta/window/start",
+      "/meta/window/end",
+      "/meta/data_basis",
+      "/meta/options/account",
+      "/meta/options/safe_rate_mode",
+      "/meta/options/lot_rounding"
+    ]
+  },
+  "highlighted_period": "Q",
+  "retrieved_refs": [
+    "concept/max_drawdown#0",
+    "concept/transaction_cost#0",
+    "concept/annual_volatility#0"
+  ]
+}

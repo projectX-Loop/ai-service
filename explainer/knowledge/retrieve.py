@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -115,11 +116,17 @@ class DbRetriever:
         self._store = store
         self._conn = conn or store.connect()
         self._embedder = embedder or GeminiEmbedder()
+        self._tag_vec: dict[str, list[float]] = {}   # 태그 → 질의 벡터. 태그는 고정 문자열이라 프로세스당 1회만 임베딩 (9/4 실측: 8태그 3.5초 → 0초)
+
+    def _query_vector(self, tag: str) -> list[float]:
+        if tag not in self._tag_vec:
+            [self._tag_vec[tag]] = self._embedder.embed([tag], task="RETRIEVAL_QUERY")
+        return self._tag_vec[tag]
 
     def retrieve(self, source: SimulationInput, *, per_tag: int = 1) -> list[Chunk]:
         out: list[Chunk] = []
         for tag in concept_tags_for(source):
-            [qv] = self._embedder.embed([tag], task="RETRIEVAL_QUERY")
+            qv = self._query_vector(tag)
             for h in self._store.search(self._conn, qv, k=per_tag, tags=[tag]):
                 out.append(Chunk(ref=h.ref, title=h.title, location=h.location or "",
                                  content=h.content, concept_tags=h.concept_tags))
@@ -134,6 +141,6 @@ def default_retriever() -> Retriever:
     if os.environ.get("DATABASE_URL"):
         try:
             return DbRetriever()
-        except Exception:      # DB 못 붙으면 파일로 내려간다 — 설명이 통째로 죽는 것보다 낫다
-            pass
+        except Exception as e:  # DB 못 붙으면 파일로 내려간다 — 설명이 통째로 죽는 것보다 낫다. 단, 조용히 내려가면 못 알아채므로 로그
+            logging.getLogger("ai-service.retrieve").warning("DbRetriever 초기화 실패 → FileRetriever 폴백: %s", e)
     return FileRetriever()

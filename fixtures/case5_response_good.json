@@ -1,0 +1,136 @@
+{
+  "summary": {
+    "text": "2021-08~2026-07 시장이 그대로 반복된다면, 분기(Q) 리밸런싱 기준 만기 총자산은 8,314만원으로 목표 금액인 60,000,000원 대비 23,144,257원을 초과 달성합니다. 투자 자산에 해외 주식 (SPY × USD/KRW)이 포함되어 있어 환율 변동이 원화 수익률에 반영됩니다.",
+    "evidence": [
+      "/meta/window/start",
+      "/meta/window/end",
+      "/focus",
+      "/per_period/Q/gap/fv_total",
+      "/goal_amount",
+      "/per_period/Q/gap/shortfall",
+      "/meta/assets_used/0/display_name"
+    ]
+  },
+  "per_period_pros_cons": {
+    "M": {
+      "pros": [
+        {
+          "text": "2021-08~2026-07 시장이 그대로 반복될 경우 월 리밸런싱의 만기 총자산은 83,144,257원, 누적 비용은 23,000원으로 세 주기의 결과가 같아 주기를 바꿔도 결과가 같습니다.",
+          "evidence": [
+            "/meta/window/start",
+            "/meta/window/end",
+            "/per_period/M/gap/fv_total",
+            "/per_period/M/cum_cost"
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "text": "월 리밸런싱의 만기 총자산은 83,144,257원, 누적 비용은 23,000원으로 주기를 바꿔도 결과가 같습니다.",
+          "evidence": [
+            "/per_period/M/gap/fv_total",
+            "/per_period/M/cum_cost"
+          ]
+        }
+      ]
+    },
+    "Q": {
+      "pros": [
+        {
+          "text": "2021-08~2026-07 시장이 그대로 반복될 경우 분기 리밸런싱의 만기 총자산은 83,144,257원, 누적 비용은 23,000원으로 세 주기의 결과가 같아 주기를 바꿔도 결과가 같습니다.",
+          "evidence": [
+            "/meta/window/start",
+            "/meta/window/end",
+            "/per_period/Q/gap/fv_total",
+            "/per_period/Q/cum_cost"
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "text": "분기 리밸런싱의 만기 총자산은 83,144,257원, 누적 비용은 23,000원으로 주기를 바꿔도 결과가 같습니다.",
+          "evidence": [
+            "/per_period/Q/gap/fv_total",
+            "/per_period/Q/cum_cost"
+          ]
+        }
+      ]
+    },
+    "H": {
+      "pros": [
+        {
+          "text": "2021-08~2026-07 시장이 그대로 반복될 경우 반기 리밸런싱의 만기 총자산은 83,144,257원, 누적 비용은 23,000원으로 세 주기의 결과가 같아 주기를 바꿔도 결과가 같습니다.",
+          "evidence": [
+            "/meta/window/start",
+            "/meta/window/end",
+            "/per_period/H/gap/fv_total",
+            "/per_period/H/cum_cost"
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "text": "반기 리밸런싱의 만기 총자산은 83,144,257원, 누적 비용은 23,000원으로 주기를 바꿔도 결과가 같습니다.",
+          "evidence": [
+            "/per_period/H/gap/fv_total",
+            "/per_period/H/cum_cost"
+          ]
+        }
+      ]
+    }
+  },
+  "risks": [
+    {
+      "title": "최대 낙폭 (MDD)",
+      "detail": "투자 기간 중 발생한 최대 낙폭(고점 대비 최대 하락 폭)은 7.44%입니다.",
+      "evidence": [
+        "/per_period/Q/risk/mdd_pct",
+        "chunk:concept/max_drawdown#0"
+      ]
+    },
+    {
+      "title": "연환산 변동성 및 월간 최대 하락",
+      "detail": "연환산 변동성(수익률 등락 폭)은 13.66%이며, 가장 실적이 저조했던 달의 수익률은 -10.31%입니다.",
+      "evidence": [
+        "/per_period/Q/risk/vol_annual_pct",
+        "/per_period/Q/risk/worst_month_pct",
+        "chunk:concept/annual_volatility#0"
+      ]
+    }
+  ],
+  "next_actions": [
+    {
+      "adjustable_input": "GOAL_AMOUNT",
+      "text": "목표 금액(60,000,000원) 대비 23,144,257원을 초과 달성했으므로 목표 금액을 높여 조정해볼 수 있습니다.",
+      "evidence": [
+        "/goal_amount",
+        "/per_period/Q/gap/shortfall"
+      ]
+    },
+    {
+      "adjustable_input": "GOAL_HORIZON",
+      "text": "현재 설정된 목표 기간(60개월)을 단축하는 조정을 고려해볼 수 있습니다.",
+      "evidence": [
+        "/meta/window/months"
+      ]
+    }
+  ],
+  "assumptions_note": {
+    "text": "기준 구간은 2021-08~2026-07이며, 해외 주식 (SPY × USD/KRW)에 대해 환율 변동이 원화 수익률에 직접 반영되는 환노출(무헤지) 조건이 적용되었습니다. 실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지) · 안전저축 연 2.96%(기준 구간 정기예금 가중평균금리 평균 고정) · 납입 경로: funds.monthly 상수 (상수 반복) · 세금 제외 기준에 따라 세금 미반영, 고정 예금금리 방식(fixed_avg), 1주 단위 매수 미적용(lot_rounding: false)을 바탕으로 작성되었으며, 달성 기준은 세전(pre_tax)입니다.",
+    "evidence": [
+      "/meta/window/start",
+      "/meta/window/end",
+      "/meta/assets_used/0/display_name",
+      "/meta/data_basis",
+      "/meta/options/account",
+      "/meta/options/safe_rate_mode",
+      "/meta/options/lot_rounding",
+      "/per_period/Q/gap/basis"
+    ]
+  },
+  "highlighted_period": "Q",
+  "retrieved_refs": [
+    "concept/max_drawdown#0",
+    "concept/annual_volatility#0"
+  ]
+}

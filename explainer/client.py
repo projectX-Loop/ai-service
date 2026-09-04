@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from google import genai
 from google.genai import errors as genai_errors
@@ -47,6 +47,7 @@ class ExplainOutcome:
     report: Report
     attempts: int
     chunk_refs: list[str]          # 프롬프트에 넣은 청크 참조 (KAN-17 retrieved_refs 원천)
+    retry_reasons: list[str] = field(default_factory=list)   # 1회차가 반려됐을 때의 위반 목록 (로그·KAN-13 근거)
 
 
 # ─── Gemini 와이어 스키마
@@ -174,7 +175,8 @@ def explain(source: SimulationInput, *, client: genai.Client | None = None,
         explanation = _parse(response)
         report = validate(explanation, source, chunk_exists=chunk_exists)
         if report.passed:
-            return ExplainOutcome(explanation, report, attempt, [c["ref"] for c in chunks])
+            return ExplainOutcome(explanation, report, attempt, [c["ref"] for c in chunks],
+                                  retry_reasons=[str(v) for v in last_report.errors] if last_report else [])
 
         last_report = report
         if attempt < MAX_ATTEMPTS:

@@ -3,6 +3,9 @@
 원본: `projectX-Loop/LSJ` `engine-development` 브랜치 `KAN-11-시뮬레이터/v0.3/output/{golden,experiments_after}/`.
 각 파일 = 엔진 `result` + `focus`(입력 `rebalancing.focus`) + `goal_amount`(입력 `goal.amount`). KAN-17 `/rag/answer` 본문 그대로.
 `t/`는 KAN-13 검출 케이스(T1~T21) 전용 payload. 응답 픽스처(`*_response_good.json`)는 실호출로 만들고 사람이 검수한 것만 둔다.
+`inputs/`는 Kan-9 §2 입력(승준 페르소나) — `POST /calculate` 요청 예시·테스트용.
+
+**응답 픽스처 (9/4 실호출, gemini-3.6-flash, 가드레일 오류 0·경고 0)**: `case3_response_good.json`(1회 통과) · `case4_response_good.json`(1회) · `case5_response_good.json`(**1회 반려 → 재생성 통과** — 재시도 경로 첫 실측). `case1_response_good.json`은 9/2 수기 작성본 유지. case2는 Gemini 503/504로 미생성.
 
 | 파일 | 실험 | 취지 | 비고 |
 |---|---|---|---|

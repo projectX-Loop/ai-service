@@ -121,7 +121,7 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 ## 미검증 · 다음
 
 - ~~실제 LLM 호출~~ — 9/3 검증 완료(3/3 통과). 키는 **무료 등급 유지**(9/4 팀 결정, 하루 20회). 남은 것: 응답 픽스처 2~5 · 통과율 표본
-- **DB 적재·검색 실행** (Docker 대기) — `scripts/ingest.py --fake` → `search.py --eval`
+- ~~DB 적재·검색 실행~~ — 9/4 Docker 검증 완료(적재 28청크·검색 5/5). 절차는 docs/KAN-16 「실행」
 - docker compose 연동 (도윤 compose 대기)
 - KAN-13 픽스처 2~5 (승준 골든 P1~P5)
 - 레포 구조 — 노션 인프라 문서 `contracts/simulator/rag/app` vs 현재 `explainer/`. 도윤 확인 후

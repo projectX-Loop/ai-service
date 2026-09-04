@@ -354,7 +354,7 @@ KAN-9 자산 카탈로그의 **코드**(`KR_EQ`·`US_EQ`·`KR_BOND`)를 쓴다.
 | 케이스 | 픽스처 | 상태 |
 |---|---|---|
 | 1 | `case1_small_gap.json` + `case1_response_good.json` | **KAN-11 골든 P0 값으로 교체 완료** (2021-08~2026-07, 목표 초과). 승준 `golden_P0.json` 원본 수령 시 trajectory까지 갈아끼움 |
-| 2~5 | `case2_large_gap.json` · `case3_high_cost.json` · `case4_high_drawdown.json` · `case5_no_difference.json` | **입력 작성 완료 (9/4, 실험 X01f·X14c·X16d·X03a 실측).** 응답 픽스처는 쿼터 확보 후 실호출 → 사람 검수 |
+| 2~5 | `case2_large_gap.json` · `case3_high_cost.json` · `case4_high_drawdown.json` · `case5_no_difference.json` + `case3/4/5_response_good.json` | **입력 4 + 응답 3 (9/4 실호출).** 3·4는 1회 통과, **5는 1회 반려 후 재생성 통과**(재시도 경로 실측). 응답은 사람 검수 완료: 케이스 4 "45개월 더 연장하면 도달"은 `extension_status` OK라 허용, 케이스 5 퇴화 서술 정확. case2 응답은 Gemini 503/504로 미생성 |
 | T 검출용 | `t/X04a_cost_order_reversal.json` 외 5개 | T6·T9·T12·T13·T17·T18 payload. `fixtures/FIXTURES.md` |
 | 6 입력 오류 | `tests/test_public_api.py` (6-a~6-e) | **KAN-4로 이관 확정** (9/3). `public_api.PlanInputs`가 거부, 5건 통과 |
 | 규칙 5·6 검출 | `tests/test_guardrail.py` | **작성 완료** — A11·A12 케이스 각 1건, 통과 |

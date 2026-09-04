@@ -10,6 +10,7 @@ import os
 from dataclasses import dataclass
 
 import psycopg
+from pgvector import Vector
 from pgvector.psycopg import register_vector
 
 from .chunking import Chunk
@@ -84,7 +85,9 @@ def insert_chunks(conn: psycopg.Connection, doc_id: int, chunks: list[Chunk],
                 (document_id, chunk_index, content, embedding, concept_tags, location, char_count)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
-            [(doc_id, c.index, c.content, v, concept_tags, c.location, c.char_count)
+            # list[float] 그대로 보내면 float8[] 로 나간다 — 대입은 암시적 캐스트로 통과하지만 <=> 연산은 실패.
+            # 9/4 Docker 실검증에서 발견. Vector 로 감싸 vector 타입으로 보낸다.
+            [(doc_id, c.index, c.content, Vector(v), concept_tags, c.location, c.char_count)
              for c, v in zip(chunks, vectors)],
         )
 
@@ -97,10 +100,11 @@ def search(conn: psycopg.Connection, query_vector: list[float], *, k: int = 3,
     없으면 KAN-16이 말하는 「개념 질의」 벡터 검색 경로다. 둘 다 이 함수 하나로 처리한다.
     """
     where = "WHERE c.concept_tags && %s" if tags else ""
-    params: list = [query_vector]
+    qv = Vector(query_vector)          # float8[] 가 아니라 vector 로. (9/4 실검증: 없으면 'operator does not exist: vector <=> double precision[]')
+    params: list = [qv]
     if tags:
         params.append(tags)
-    params += [query_vector, k]
+    params += [qv, k]
     with conn.cursor() as cur:
         cur.execute(
             f"""

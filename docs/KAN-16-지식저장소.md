@@ -1,7 +1,8 @@
 # KAN-16 — pgvector 지식 저장소 및 임베딩 파이프라인
 
 > 담당 성종현 · 선행 KAN-15, KAN-3 · 후속 KAN-17
-> **상태 (2026-09-03 밤 · Jira Blocked, 도윤 15:31 전환·사유 미기재)**: 파이프라인 구현 완료 + **KAN-17 결합 완료** (`retrieve.py`). 개념 문서 8/8. **임베딩 실호출 검증 완료** — `gemini-embedding-001` 768d, 0.5초. DB 적재·검색만 미검증(Docker 미설치) — 파일 폴백으로 전체 파이프라인은 돈다. 대기: RDS `CREATE EXTENSION vector` · Flyway 이관(도윤)
+> **상태 (2026-09-04 저녁 · Jira Blocked = KAN-3 ERD → Flyway·RDS 대기)**: **Docker pgvector 실검증 완료** — 적재 8문서/28청크(실제 임베딩), 재실행 멱등(건너뜀 8), HNSW·GIN 인덱스 생성, 검색 평가 5/5, `DbRetriever` 픽스처 8청크, `chunk_exists` 정상. **발견·수정 1건**: `store.search`가 질의 벡터를 `list`로 넘겨 `float8[]`로 나감 → `operator does not exist: vector <=> double precision[]`(적재는 암시적 캐스트로 통과해 테스트로는 못 잡던 버그) → `pgvector.Vector`로 감쌈. 태그 질의 임베딩 캐시 추가(요청당 3.5초 → 0). 아래 「실행」 참조.
+> **상태 (2026-09-03 밤)**: 파이프라인 구현 완료 + **KAN-17 결합 완료** (`retrieve.py`). 개념 문서 8/8. **임베딩 실호출 검증 완료** — `gemini-embedding-001` 768d, 0.5초. DB 적재·검색만 미검증(Docker 미설치) — 파일 폴백으로 전체 파이프라인은 돈다. 대기: RDS `CREATE EXTENSION vector` · Flyway 이관(도윤)
 
 ## 구조
 
@@ -63,6 +64,16 @@ guardrail C3 확장은 `store.chunk_exists(ref)`로 실존을 확인한다.
 | 설정 전부 환경변수, 비밀값 없음 | `DATABASE_URL`, `GEMINI_API_KEY`, `EMBEDDING_*` | 확인 |
 
 ## 실행
+
+**로컬 (9/4 검증한 그대로)** — compose 조각은 도윤 레포 상대 경로라 단독 실행은 `docker run`:
+```bash
+docker run -d --name loop-pgvector -e POSTGRES_DB=loop -e POSTGRES_USER=loop -e POSTGRES_PASSWORD=loop \
+  -p 5432:5432 -v "$PWD/db:/docker-entrypoint-initdb.d:ro" pgvector/pgvector:pg16   # V1__knowledge.sql 자동 적용
+export DATABASE_URL=postgresql://loop:loop@localhost:5432/loop
+./.venv/bin/python scripts/ingest.py          # 실제 임베딩 적재. 재실행하면 건너뜀
+./.venv/bin/python scripts/search.py --eval   # 샘플 질의 5건
+```
+
 
 ```bash
 # 로컬 Postgres (docker compose)

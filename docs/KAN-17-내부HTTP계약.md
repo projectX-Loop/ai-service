@@ -313,7 +313,9 @@
 **⚠ 쿼터**: 현재 키는 **무료 등급 — `gemini-3.6-flash` 하루 20회**(`GenerateRequestsPerDayPerProjectPerModel-FreeTier`).
 **9/4 팀 결정: 무료 등급 유지.** 결제 전환 안 함. 따라서 운용 규칙: ① 실호출 테스트는 하루 20회 안에서 케이스 우선순위대로(응답 픽스처 생성 > 통과율 표본) ② 재생성(2회째)은 호출 1회를 더 쓰므로 반려율이 곧 쿼터 소모 ③ 심사 기간에는 팀원이 데모용 호출을 아껴야 하고, 20회 초과 시 화면은 `EXPLANATION_UNAVAILABLE` 메시지로 내려간다(결과 화면은 유지, KAN-17 규약) ④ 한도 리셋은 태평양 시간 자정(한국 16~17시). 필요해지면 별도 프로젝트 키(무료 등급 하나 더)로 20회 추가가 가장 싼 우회.
 
-**임베딩**: `gemini-embedding-001` 768차원 실호출 정상(0.5초). pgvector 적재는 Docker 미설치로 미검증.
+**임베딩**: `gemini-embedding-001` 768차원 실호출 정상(0.5초). pgvector 적재·검색은 9/4 Docker로 검증(docs/KAN-16).
+
+**가용성 (9/4 저녁)**: `gemini-3.6-flash`가 18~19시에 503(UNAVAILABLE)·504(DEADLINE_EXCEEDED)를 6회 중 4회 냄 — 쿼터가 아니라 구글 측 과부하. 심사 시간대 리스크. 현재 설계(즉시 `EXPLANATION_UNAVAILABLE` → 결과 화면 유지 → Spring 재시도)가 이 상황의 대응이고, 필요하면 `GEMINI_MODEL`을 `gemini-flash-latest`·`gemini-3.8-flash`로 바꿔 우회할 수 있다(모델별 쿼터 별도).
 
 **HTTP**: `GET /health` 정상. `POST /rag/answer` 200 + `status`(정상 OK · 쿼터 초과 시 EXPLANATION_UNAVAILABLE) · 잘못된 본문 422 INVALID_INPUT 확인.
 
