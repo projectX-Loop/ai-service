@@ -1,0 +1,151 @@
+{
+  "data_version": "2026-09-02",
+  "data_hash": "sha256:fa84100c67a0589aaa3cdb88a13138b87dba6417403f56608680896dbfddb90d",
+  "latest_month": "2026-07",
+  "start_month": "2026-08",
+  "frozen": false,
+  "latest_month_rule": "min(기준 자산(group=base) 수익률 최신월, 정기예금 금리 최신월)",
+  "files": {
+    "monthly_returns.csv": "sha256:3159f3533915d437dfd5dddddcac960ee3fb910a41d152462a687bea6c647bf2",
+    "asset_catalog.json": "sha256:11b2007accaace7147a8a61914fbe601323ae105c69e2cf4cbe9877ec518878b",
+    "deposit_rate_monthly.csv": "sha256:db95eac4d73c1475c45f6b7f07962719d28f5127934c05eb55edd5ebb17ec5bf",
+    "cpi_monthly.csv": "sha256:ab131eada15a62b0ae61802e9ec55b0828d7190b5a58c2a4168317e0aba54dda",
+    "wage_index_monthly.csv": "sha256:d88ca22d002704e8be07fcde354254995e7d394b9732c13b3a88d481ebe32166"
+  },
+  "hash_rule": "data_hash = SHA-256( monthly_returns.csv ‖ asset_catalog.json ‖ deposit_rate_monthly.csv ‖ cpi_monthly.csv ‖ wage_index_monthly.csv ) — 파일 바이트를 이 순서로 이어 붙임",
+  "coverage": {
+    "returns.KR_EQ": [
+      "2009-02",
+      "2026-07",
+      210
+    ],
+    "returns.KR_BOND": [
+      "2009-08",
+      "2026-07",
+      204
+    ],
+    "returns.GOLD_KR_H": [
+      "2010-11",
+      "2026-07",
+      189
+    ],
+    "returns.US_TECH_KR": [
+      "2010-11",
+      "2026-07",
+      189
+    ],
+    "returns.US_EQ_KR_H": [
+      "2011-08",
+      "2026-07",
+      180
+    ],
+    "returns.KR_SMALL": [
+      "2015-11",
+      "2026-07",
+      129
+    ],
+    "returns.US_BOND_KR": [
+      "2018-09",
+      "2026-07",
+      95
+    ],
+    "returns.US_EQ_KR": [
+      "2020-09",
+      "2026-07",
+      71
+    ],
+    "returns.US_TECH_KR_TR": [
+      "2021-05",
+      "2026-07",
+      63
+    ],
+    "returns.US_EQ": [
+      "2009-02",
+      "2026-07",
+      210
+    ],
+    "deposit_rate": [
+      "2009-01",
+      "2026-07",
+      211
+    ],
+    "cpi": [
+      "2009-01",
+      "2026-07",
+      211
+    ],
+    "wage": [
+      "2011-01",
+      "2026-05",
+      185
+    ]
+  },
+  "base_codes": [
+    "KR_EQ",
+    "US_EQ",
+    "KR_BOND"
+  ],
+  "gates": {
+    "missing": "통과 — 구간 내 결측 0",
+    "deposit_covers_latest": "통과",
+    "outlier_over_50pct": "없음",
+    "outlier_over_25pct_flagged": [
+      "KR_EQ@2026-01 +0.2708",
+      "KR_EQ@2026-04 +0.3304",
+      "KR_EQ@2026-05 +0.3494",
+      "KR_SMALL@2026-01 +0.3286",
+      "KR_SMALL@2026-07 -0.2695"
+    ],
+    "price_anchor_alignment": "통과 — anchor + 1 = 첫 수익률 월 (전 자산)",
+    "base_common_window": "2009-08~2026-07 (204개월)"
+  },
+  "notes": [
+    "wage 최신 2026-05 < 최신 확정월 2026-07 — growth_mode=replay는 이 스냅샷에서 SERIES_NOT_AVAILABLE (동결 옵션 --latest-month 2026-05 로 별도 스냅샷 생성 가능)"
+  ],
+  "sources": [
+    {
+      "role": "returns",
+      "path": "KAN-10-기술검토\\krx-수집분석\\out\\monthly_returns_candidate.csv",
+      "sha256": "sha256:b04127553af3dc08cf935f5df2dea5a9f3874289339eb68afcc450547661244b",
+      "manifest_fetched_at": null
+    },
+    {
+      "role": "catalog",
+      "path": "KAN-10-기술검토\\krx-수집분석\\out\\asset_catalog_draft.json",
+      "sha256": "sha256:f027e87b1a2b25c4b370875aa3aaffd681dd0986b944bdc61dfadb82c4f60915",
+      "manifest_fetched_at": null
+    },
+    {
+      "role": "krx_manifest",
+      "path": "KAN-10-기술검토\\krx-수집분석\\out\\MANIFEST.json",
+      "sha256": "sha256:d12c4de8d654904954ed23fe14789d18941488e8aa8c5865669efdbb93c79e5a",
+      "manifest_fetched_at": null
+    },
+    {
+      "role": "ecos",
+      "path": "KAN-10-기술검토\\ecos-수집분석\\out\\monthly_ecos.csv",
+      "sha256": "sha256:c070219baaeafd665336272d48b906e64cd40217596eacb24104805aed7a99be",
+      "manifest_fetched_at": "2026-08-30T21:03:59"
+    },
+    {
+      "role": "ecos_manifest",
+      "path": "KAN-10-기술검토\\ecos-수집분석\\out\\MANIFEST.json",
+      "sha256": "sha256:55f60e078973ca200ca70a82941163eb46674eaf696611bc2b5ca7f891bffd23",
+      "manifest_fetched_at": null
+    },
+    {
+      "role": "wage",
+      "path": "KAN-10-기술검토\\kosis-수집분석\\out\\wage_index_monthly.csv",
+      "sha256": "sha256:3f2514256277ee17938dcc13b3667e80a018af7285c7a1cc51345af0c04ea329",
+      "manifest_fetched_at": null
+    },
+    {
+      "role": "kosis_manifest",
+      "path": "KAN-10-기술검토\\kosis-수집분석\\out\\MANIFEST.json",
+      "sha256": "sha256:f5902b17bd3e5526bba45296525c3cf6d5942d81951fced621c4a4a722376005",
+      "manifest_fetched_at": null
+    }
+  ],
+  "generated_at": "2026-09-02T06:00:15+00:00",
+  "generator": "KAN-11-시뮬레이터/v0.3/build_snapshot.py (오프라인)"
+}

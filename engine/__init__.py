@@ -1,6 +1,6 @@
 """engine — 승준 KAN-11 리밸런싱 시뮬레이터 v0.3 (계산 엔진). 소유: 이승준.
 
-원본: projectX-Loop/LSJ `KAN-11-시뮬레이터/v0.3/src/core`. 여기엔 파일 4개가 들어온다:
+원본: projectX-Loop/LSJ `KAN-11-시뮬레이터/v0.3/src/core`. 파일 4개:
     engine.py · dataset.py · cashflow.py · errors.py        (표준 라이브러리만, 외부 의존 없음)
 스냅샷은 engine/data/ (SNAPSHOT.json · asset_catalog.json · CSV 4개). 편집기로 열지 말 것 — 로드 시 SHA-256 대조.
 

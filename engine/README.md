@@ -2,8 +2,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 들어올 것 | `engine.py` `dataset.py` `cashflow.py` `errors.py` — LSJ `v0.3/src/core` 그대로 |
-| 스냅샷 | `data/` — LSJ `v0.3/input/data` 6개 파일. **바이너리 그대로 복사** (해시 검증) |
+| 들어온 것 | `engine.py` `dataset.py` `cashflow.py` `errors.py` — LSJ `v0.3/src/core` 그대로 (평면 import → 상대 import 만 변경) |
+| 스냅샷 | `data/` — LSJ `v0.3/input/data` 6개 파일. **바이너리 그대로 복사** (해시 검증) · data_version 2026-09-02 · latest_month 2026-07 |
 | import | 패키지 안이므로 `from . import cashflow` · `from .dataset import Dataset` · `from .errors import ValidationError, err` |
 | 호출 | `from engine.engine import analyze` · `from engine.dataset import Dataset` → `analyze(inputs, dataset=Dataset.load("engine/data"), now=...)` |
 | 테스트·골든 | LSJ 레포에 둔다. ai-service는 `fixtures/`에 골든·실험 payload 사본만 |
