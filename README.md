@@ -13,15 +13,15 @@ explainer/
   calculate.py     POST /calculate 어댑터 — 기동 시 Dataset 1회 로드, ValidationError → 422
   schema.py        입력(KAN-9 §5) · 출력(KAN-9 §7 + evidence) 스키마. Pydantic
   prompt.py        시스템 프롬프트 (docs/KAN-12와 글자 단위 일치)
-  guardrail.py     검증기 C2~C13. 이 프로젝트의 핵심
+  guardrail.py     검증기 C2~C18 (C14 자동 부분 · C16~C18은 9/4 승준 변경점). 이 프로젝트의 핵심
   client.py        Gemini Flash 호출 → 가드레일 → 실패 시 1회 재생성
-  api.py           FastAPI. POST /rag/answer · GET /health
+  api.py           FastAPI. POST /calculate · POST /rag/answer · GET /health
   public_api.py    공개 API(브라우저↔Spring) JSON 계약 — KAN-4. 실행 안 함, Spring DTO의 원본
   knowledge/       chunking · embedding · store(pgvector) · retrieve(결과 필드 → 개념 청크)
 knowledge/         RAG 원재료 — 개념 문서 8개. 코드가 읽는 데이터 (KAN-15)
-fixtures/          케이스 1~5 입력(승준 골든 P0·실험 X01f·X14c·X16d·X03a 실측) + t/ 검출용 6개 + 정상 응답 1. 목록 fixtures/FIXTURES.md
-tests/             guardrail 27 · knowledge 45 · retrieve 18 · explain 10 · public_api 47 · calculate 15 — 전부 LLM·DB 호출 없음
-scripts/           ingest.py(적재) · search.py(검색 평가) · export_openapi.py(OpenAPI 생성)
+fixtures/          케이스 1~5 입력(승준 골든 P0·실험 X01f·X14c·X16d·X03a 실측) + t/ 검출용 6개 + inputs/(승준 페르소나) + 검수된 응답 4(케이스 1·3·4·5). 목록 fixtures/FIXTURES.md
+tests/             guardrail 31 · knowledge 45 · retrieve 18 · explain 10 · public_api 47 · calculate 15 — 전부 LLM·DB 호출 없음
+scripts/           ingest.py(적재) · search.py(검색 평가) · export_openapi.py(OpenAPI 생성) · smoke.py(통합 스모크, 9/5 합숙용)
 db/                V1__knowledge.sql — knowledge_* 스키마. backend Flyway로 이관 예정
 docs/              설계 문서 6개 (KAN-04·12·13·15·16·17) + 인덱스 + openapi/(공개·내부 OpenAPI, 예시 JSON 13개)
 run.py             CLI
@@ -137,8 +137,8 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 
 ## 미검증 · 다음
 
-- ~~실제 LLM 호출~~ — 9/3 검증 완료(3/3 통과). 키는 **무료 등급 유지**(9/4 팀 결정, 하루 20회). 남은 것: 응답 픽스처 2~5 · 통과율 표본
+- ~~실제 LLM 호출~~ — 9/3 검증 완료(3/3 통과). 키는 **무료 등급 유지**(9/4 팀 결정, 하루 20회). 남은 것: 케이스 2 응답 픽스처(Gemini 503으로 미생성) · 통과율 표본
 - ~~DB 적재·검색 실행~~ — 9/4 Docker 검증 완료(적재 28청크·검색 5/5). 절차는 docs/KAN-16 「실행」
 - docker compose 연동 (도윤 compose 대기)
-- KAN-13 픽스처 2~5 (승준 골든 P1~P5)
-- 레포 구조 — 노션 인프라 문서 `contracts/simulator/rag/app` vs 현재 `explainer/`. 도윤 확인 후
+- ~~KAN-13 픽스처 2~5~~ — 9/4 입력 4 + 응답 3 작성(승준 실험 payload). 케이스 2 응답만 남음
+- 레포 구조 — 노션 인프라 문서 `contracts/simulator/rag/app` vs 현재 `explainer/` + `engine/`(9/4 승준 엔진 수용). 도윤 확인 후
