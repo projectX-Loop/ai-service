@@ -2,6 +2,7 @@
 # 백엔드 compose에 그대로 옮겨 붙이면 backend → ai-service 호출이 됩니다.
 services:
   # KAN-16 · 로컬 pgvector. 기본 postgres 이미지엔 확장이 없어 pgvector 이미지를 쓴다.
+  # 9/7 ai-service 는 이 db 를 쓰지 않는다(파일 폴백). 도윤 RDS 를 쓰는 compose 에선 이 서비스를 빼도 된다.
   db:
     image: pgvector/pgvector:pg16
     environment:
@@ -27,8 +28,9 @@ services:
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
-      # KAN-16에서 pgvector 붙일 때 사용
-      DATABASE_URL: ${DATABASE_URL:-postgresql://loop:${POSTGRES_PASSWORD:-loop}@db:5432/loop}
+      # 9/7: 비워 둔다 → knowledge/*.md 파일 폴백 (ERD 9/7 마이그레이션이 knowledge_* 제외, KAN-17 9/4 댓글).
+      # pgvector 승격 시 DATABASE_URL=postgresql://loop:${POSTGRES_PASSWORD}@db:5432/loop 로 채우면 코드 변경 없이 전환.
+      DATABASE_URL: ${DATABASE_URL:-}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-001}
       EMBEDDING_DIM: ${EMBEDDING_DIM:-768}
     ports:

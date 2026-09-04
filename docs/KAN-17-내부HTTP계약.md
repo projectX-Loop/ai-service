@@ -278,7 +278,9 @@
 ## 배포
 
 - `Dockerfile` — `python:3.14-slim`(승준 엔진 기준) · `explainer/`·`engine/`·`knowledge/` 복사 · `uvicorn explainer.api:app --port 8000`, healthcheck 포함. 비밀값 미포함
-- `docker-compose.ai-service.yml` — 도윤 compose에 붙일 조각 (`db` + `ai-service`). 형태는 도윤 compose 받은 뒤 맞춤
+- `docker-compose.ai-service.yml` — 도윤 compose에 붙일 조각. **9/7 `DATABASE_URL` 비움(파일 폴백)**, `db` 서비스는 pgvector 승격 전까지 미사용
+- **9/4 실제 빌드·기동 검증**: `docker build` → `python:3.14-slim` 375MB, `/health` 엔진 해시 노출, `/calculate` 6ms, 422 경로. 발견: `FROM` 줄 끝 주석이 빌드 실패 → 수정
+- `scripts/smoke.py <base_url> [--llm]` — 통합 스모크 6항목(LLM 없이) + 실호출 1회 옵션. 도윤이 compose 올린 뒤 이것부터 돌린다
 - 환경변수: `GEMINI_API_KEY` `GEMINI_MODEL` `DATABASE_URL` `EMBEDDING_MODEL` `EMBEDDING_DIM`. 배포 시 SSM `/loop/mvp/*`에서 주입
 
 ## 수용 기준 대조

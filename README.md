@@ -54,6 +54,23 @@ export GEMINI_API_KEY=...
 
 **pgvector 적재·검색** — [`docs/KAN-16-지식저장소.md`](docs/KAN-16-지식저장소.md) 「실행」 참조. `DATABASE_URL` 없으면 `knowledge/*.md`를 직접 읽는 파일 폴백으로 동작한다.
 
+## 9/5 통합(합숙) 체크리스트 — 도윤 compose 에 붙일 때
+
+```bash
+docker build -t ai-service .                                   # 9/4 로컬 빌드·기동 검증 (375MB, python:3.14-slim)
+docker run -d -p 8000:8000 -e GEMINI_API_KEY=... ai-service     # DATABASE_URL 은 9/7 비움 (파일 폴백)
+python3 scripts/smoke.py http://localhost:8000                 # LLM 없이 6항목: health·엔진 해시·/calculate 골든·422·결정론
+python3 scripts/smoke.py http://localhost:8000 --llm           # /rag/answer 실호출 1회 (쿼터 1회)
+```
+
+| 확인 | 기대 |
+|---|---|
+| `GET /health` | `engine.data_hash` = `sha256:fa84100c…` (data_version 2026-09-02). Spring `data_snapshot(is_current).data_hash` 와 같아야 `SNAPSHOT_MISMATCH` 가 안 난다 |
+| `POST /calculate` | P0 입력 → 골든 P0 원 단위 동일, ~10ms. 검증 실패 422 `{code, retryable:false, errors[]}` → Spring 400 변환 |
+| `POST /rag/answer` | 항상 200 + `status`. 생성 20~60초 → Spring 타임아웃 **90초**. 429/503 은 `EXPLANATION_UNAVAILABLE` (결과 화면은 유지) |
+| 쿼터 | 무료 키 **모델당 하루 20회**, 리셋 한국시간 16~17시. 통합 테스트에 `--llm` 을 아껴 쓸 것. 개발용으로 팀원 개인 Google 계정 무료 키를 하나 더 만들면 20회 추가 |
+| 스냅샷 동결(9/6) | 승준이 `engine/data/` 6개 덮어쓰기 → `data_hash` 변경 → 도윤 DB 행 갱신 → **이미지 재빌드** |
+
 ## 내부 HTTP (KAN-17)
 
 ```bash
