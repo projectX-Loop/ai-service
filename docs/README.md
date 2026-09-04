@@ -30,7 +30,7 @@ Jira · Notion   ← 유일한 기준(SSOT). 요구사항·계약·ERD·회의 �
 | PRD · ERD · 인프라 구조 | Notion 프로젝트x 워크스페이스 |
 | 계산 엔진(승준 KAN-11) | [../engine/README.md](../engine/README.md) — `engine/`은 승준 소유, HTTP 층은 `explainer/calculate.py` |
 | 실행 방법 | [../README.md](../README.md) |
-| 작업 이력·인수인계 | `내작업/DEVLOG.md` (레포 밖, 개인) |
+| 작업 이력·인수인계 | `내작업/DEVLOG-ai-service.md` (레포 밖, 개인. 프론트는 `DEVLOG-frontend.md`) |
 | RAG 원재료 (개념 문서 8개) | [../knowledge/](../knowledge/) — **문서가 아니라 코드가 읽는 데이터** |
 
 ## 문서↔코드 일치 검사
