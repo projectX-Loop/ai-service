@@ -43,7 +43,7 @@
         ]
       }
     ],
-    "cashflow_source": "none",
+    "cashflow_source": "summary",
     "series_used": [
       "monthly_returns",
       "deposit_rate_monthly"
@@ -55,7 +55,7 @@
       "account": null
     },
     "safe_rate_annual_pct": 2.962167,
-    "data_basis": "실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지) · 안전저축 연 2.96%(기준 구간 정기예금 가중평균금리 평균 고정) · 납입 경로: funds.monthly 상수 (상수 반복) · 세금 제외",
+    "data_basis": "실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지) · 안전저축 연 2.96%(기준 구간 정기예금 가중평균금리 평균 고정) · 납입 경로: 사용자 요약값 기반 12개월 프로파일 (상수 반복) · 세금 제외",
     "warnings": [],
     "generated_at": "2026-09-02T00:00:00+00:00"
   },
@@ -65,7 +65,37 @@
     "plan_excluded_amount": 3600000
   },
   "cashflow": {
-    "profile": null,
+    "profile": {
+      "income": [
+        3600000,
+        3600000,
+        3600000,
+        3600000,
+        3600000,
+        3600000,
+        3600000,
+        3600000,
+        3600000,
+        3600000,
+        3600000,
+        3600000
+      ],
+      "expense": [
+        3000000,
+        3000000,
+        3000000,
+        3000000,
+        3000000,
+        3000000,
+        3000000,
+        3000000,
+        3000000,
+        3000000,
+        3000000,
+        3000000
+      ],
+      "debt": 0
+    },
     "monthly_contribution": [
       600000,
       600000,
@@ -128,12 +158,12 @@
       600000,
       600000
     ],
-    "surplus_rate_pct": null,
-    "bonus_share_pct": null,
+    "surplus_rate_pct": 16.67,
+    "bonus_share_pct": 0.0,
     "months_zero": 0,
     "emergency_filled_month": 0,
     "growth_effect_pct": null,
-    "surplus_headroom": null
+    "surplus_headroom": 600000
   },
   "per_period": {
     "M": {
@@ -628,13 +658,13 @@
       },
       "gap": {
         "fv_total": 70662655,
-        "shortfall": -20662655,
-        "extra_monthly_required": 0,
-        "months_extension": 0,
-        "months_extension_raw": 0,
+        "shortfall": 79337345,
+        "extra_monthly_required": 927599,
+        "months_extension": 55,
+        "months_extension_raw": 55,
         "extension_status": "OK",
-        "extra_monthly_ratio": null,
-        "status": "already_met",
+        "extra_monthly_ratio": 1.546,
+        "status": "short",
         "basis": "pre_tax"
       }
     },
@@ -1130,13 +1160,13 @@
       },
       "gap": {
         "fv_total": 69755097,
-        "shortfall": -19755097,
-        "extra_monthly_required": 0,
-        "months_extension": 0,
-        "months_extension_raw": 0,
+        "shortfall": 80244903,
+        "extra_monthly_required": 949973,
+        "months_extension": 55,
+        "months_extension_raw": 55,
         "extension_status": "OK",
-        "extra_monthly_ratio": null,
-        "status": "already_met",
+        "extra_monthly_ratio": 1.5833,
+        "status": "short",
         "basis": "pre_tax"
       }
     },
@@ -1632,17 +1662,17 @@
       },
       "gap": {
         "fv_total": 70873005,
-        "shortfall": -20873005,
-        "extra_monthly_required": 0,
-        "months_extension": 0,
-        "months_extension_raw": 0,
+        "shortfall": 79126995,
+        "extra_monthly_required": 923186,
+        "months_extension": 53,
+        "months_extension_raw": 53,
         "extension_status": "OK",
-        "extra_monthly_ratio": null,
-        "status": "already_met",
+        "extra_monthly_ratio": 1.5386,
+        "status": "short",
         "basis": "pre_tax"
       }
     }
   },
   "focus": "Q",
-  "goal_amount": 50000000
+  "goal_amount": 150000000
 }

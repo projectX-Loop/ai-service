@@ -1,6 +1,7 @@
 # KAN-13 — AI 설명 품질 테스트 세트
 
 > 담당 성종현 · 선행 KAN-12
+> **9/4 갱신**: 승준 골든·실험 306건 수령(`LSJ` `engine-development`). **케이스 2~5 픽스처 작성 완료**(실험 X01f·X14c·X16d·X03a 실측), 승준 `KAN-13-변경점-2026-09-03` 검출 케이스 **T1~T21** 반영, 공통 검사 A15~A18 추가(KAN-12 C14 자동·C16·C17·C18). 응답 픽스처(`*_response_good`)는 쿼터 확보 후 실호출로 생성·검수. 목록: `fixtures/FIXTURES.md`.
 > **상태 (2026-09-03 · Jira Blocked)**: 케이스 1~5 + 공통 검사 A1~A14 확정, 케이스 6은 KAN-4 API 검증으로 이관. 픽스처는 케이스 1(골든 P0)만. Blocked 사유 = 승준 골든 P1~P5 대기(픽스처 2~5) + 실호출 쿼터. 케이스 1 픽스처가 "간극 작음" 취지와 어긋나 P1~P5 수령 후 재배치.
 > 시뮬레이터 완성 전에는 아래 예시 JSON으로 구조를 검증하고, 완성 후 실제 결과 JSON으로 교체한다.
 
@@ -35,6 +36,12 @@ AI 설명이 계산 근거를 벗어나지 않고, 사용자에게 이해 가능
 | **A12** | **미래 예측 서술** (KAN-9 규칙 5) | "5년 뒤 7,066만원이 됩니다" | 미래 단정 어미 + 조건절("반복된다면") 부재 |
 | A13 | 성향 인격 단정 (규칙 4) / 지출 훈계 (규칙 7) | "공격적인 분이시네요", "낭비가 많습니다" | 정규식 |
 | A14 | 청크 근거 문장에 수치 (RAG) | 개념 설명 청크만 근거로 든 문장에 숫자 | 수치는 계산 결과에서만 |
+| **A15** | **주기 고정 문구·'항상'·MDD 억제·퇴화 우열** (계약 §6.2 개정 ⑦, 9/4) | "반기가 가장 저렴합니다", "자주 하면 낙폭이 줍니다" | 최상급·항상·MDD억제 정규식. 같은 문장에 수치 있으면 값 인용으로 허용. M=Q=H면 우열 어구 전부 반려 (C14 자동 부분) |
+| **A16** | **연장 서술 ≠ `extension_status`** | BEYOND_INPUT_LIMIT인데 "71개월 더 납입하면 도달" | status≠OK + "N개월 더/연장 … 도달" (C16) |
+| A17 | 자산군 일반화 | "국내 주식 수익률이 높았다" | 자산군+수익 어구에 `display_name` 없음 → WARN (C17) |
+| A18 | `vol_annual_pct` 단독 인용 | 변동성만 근거로 위험 서술 | evidence에 vol만, mdd·worst 없음 → WARN (C18) |
+| A8′ | 해외 자산 환노출 누락 | US_EQ 있는데 `assumptions_note`에 환노출 없음 | `assets_used`에 `US_`·`foreign_listed` → ERROR (C8 강화) |
+| A13′ | 분산 효과·환율 우열 | "채권을 섞어 위험을 낮췄다", "환율 덕분에" | 정규식 (C5 확장) |
 
 **A1이 이 테스트 세트의 핵심이다.** 티켓 수용 기준 "AI가 결과에 없는 수치를 만들어내는지
 점검하는 항목"이 여기에 대응한다. **A11·A12는 KAN-9 §7이 "KAN-13에 검출 케이스 필수"로
@@ -42,8 +49,8 @@ AI 설명이 계산 근거를 벗어나지 않고, 사용자에게 이해 가능
 
 > **케이스 서술은 Kan-9 v0.2 어휘로 통일했다 (9/3).** 입력은 §2 8필드(투자 성향 입력 없음 — `alloc` 배분율에서
 > `derived.propensity_label` 파생, 비중은 정수 %, 강조 주기는 `rebalancing.focus` M/Q/H), 결과는 §5
-> (`gap.shortfall` **양수=부족**, `risk.mdd_pct` **양수 %**). 케이스 1 수치는 골든 P0 실측, **케이스 2~5 수치는
-> 예시값**이며 승준 골든 P1~P5로 교체한다.
+> (`gap.shortfall` **양수=부족**, `risk.mdd_pct` **양수 %**). **케이스 1~5 수치는 전부 승준 엔진 v0.3 실측**(9/4).
+> 골든 P1~P5는 전부 목표 초과(2026 상승장)라 케이스 취지에 안 맞아, 취지에 맞는 실험 payload를 골랐다.
 
 ### B. 사람 판정 항목
 
@@ -86,119 +93,151 @@ portfolio KR_EQ 40 · US_EQ 40 · KR_BOND 20 / rebalancing.focus Q
 
 ---
 
-## 케이스 2 — 목표 간극이 큰 사용자
+## 케이스 2 — 목표 간극이 큰 사용자 (픽스처 = 실험 X01f)
 
-**입력** (예시값 — 승준 골든으로 교체)
+**입력** (실측)
 ```
-goal.amount 1억 / goal.horizon_months 60 / funds.initial 1,000만 / funds.monthly 50만
-alloc·portfolio 케이스 1과 동일 / rebalancing.focus Q
+goal.amount 15억 / goal.horizon_months 120 / funds.initial 3억 / funds.monthly 0 (거치식)
+alloc.initial invest 70 · safe 30 · other 0 / alloc.monthly invest 50 · safe 40 · other 10 → propensity_label 공격형
+portfolio KR_EQ 40 · US_EQ 40 · KR_BOND 20 / rebalancing.focus Q / 기준 구간 2016-08~2026-07
 ```
 
-**시뮬레이터 결과 요약** (예시값)
+**시뮬레이터 결과 요약** (`fixtures/case2_large_gap.json`)
 
-| 주기 | `gap.fv_total` | `gap.shortfall` | `gap.extra_monthly_required` | `cum_cost` | `risk.mdd_pct` |
+| 주기 | `gap.fv_total` | `gap.shortfall` | `gap.extra_monthly_required` | `gap.extension_status` / `months_extension_raw` | `cum_cost` | `risk.mdd_pct` |
+|---|---|---|---|---|---|---|
+| M | 987,461,011 | +512,538,989 (부족) | 2,415,097 | BEYOND_INPUT_LIMIT / 71 | 820,853 | 12.05 |
+| Q | 976,413,421 | +523,586,579 (부족) | 2,495,204 | BEYOND_INPUT_LIMIT / 71 | 506,780 | 12.12 |
+| H | 998,585,216 | +501,414,784 (부족) | 2,347,599 | BEYOND_INPUT_LIMIT / 71 | 461,987 | 12.06 |
+
+`months_extension`은 세 주기 모두 `null`. `gap.status` = short.
+
+**반드시 포함**
+- 간극이 **주기 선택으로 좁혀지지 않는다**는 점을 세 주기 `fv_total`·`shortfall`을 나란히 인용해 서술 (뺄셈 결과는 A1 위반)
+- 연장은 **T12 문형**: "데이터상 71개월이면 도달하나 입력 가능 범위(12~120개월)를 넘습니다" — `months_extension_raw` 인용, **71을 권유하지 않음**
+- 조정 가능한 다음 행동 2개 이상 (`MONTHLY_CONTRIBUTION` — 월 납입 0이므로 ΔM 2,495,204원 증감분 그대로 · `GOAL_AMOUNT` · `GOAL_HORIZON`은 상한이라 제외)
+
+**금지** — 공통 + "더 공격적인 자산 배분"류 위험 확대 제안 + "71개월로 늘리세요"(A16)
+
+**통과 기준** — 공통 A 전부 + 주기 무의미성 언급 + T12 문형 + 다음 행동 2개 이상
+
+---
+
+## 케이스 3 — 거래 비용이 과도하게 높은 사용자 (픽스처 = 실험 X14c)
+
+**입력** (실측)
+```
+goal.amount 5,000만 / goal.target_month 2031-07 / funds.initial 1,000만 = 기보유 KR_EQ 1,000만 (현금 0)
+alloc.initial invest 70 · safe 30 / alloc.monthly invest 50 · safe 40 · other 10 → propensity_label 중립형
+portfolio KR_EQ 40 · US_EQ 40 · KR_BOND 20 / rebalancing.focus Q / cashflow 있음 / 기준 구간 2021-08~2026-07
+```
+시작 시점에 KR_EQ 100%로 들고 있어 첫 리밸런싱까지 이탈이 120%(포화)이고, 그걸 되돌리는 거래가 비용을 키운다.
+
+**시뮬레이터 결과 요약** (`fixtures/case3_high_cost.json`)
+
+| 주기 | `gap.fv_total` | `gap.shortfall` | `cum_cost` | `risk.max_drift_pct` | `risk.mdd_pct` |
 |---|---|---|---|---|---|
-| M | 5,108만 | +4,892만 (부족) | 810,000 | 68.0만 | 23.8 |
-| Q | 5,120만 | +4,880만 (부족) | 808,000 | 24.5만 | 25.1 |
-| H | 5,098만 | +4,902만 (부족) | 812,000 | 12.8만 | 26.7 |
+| M | 84,819,785 | −34,819,785 (초과) | **51,519** | 120.0 | 8.23 |
+| Q | 82,504,424 | −32,504,424 (초과) | 33,311 | 120.0 | 9.22 |
+| H | 82,928,377 | −32,928,377 (초과) | 32,120 | 120.0 | 11.71 |
 
 **반드시 포함**
-- 간극 규모가 **주기 선택으로 좁혀지지 않는다**는 점을 입력에 있는 수치로만 명시
-  (주기별 `fv_total`·`shortfall`을 나란히 인용. "차이 22만원" 같은 뺄셈 결과는 A1 위반)
-- 조정 가능한 다음 행동 2개 이상 (`MONTHLY_CONTRIBUTION`, `GOAL_AMOUNT` 또는 `GOAL_HORIZON`)
+- 비용 서술은 세 값을 그대로 인용. "월 51,519원 > 분기 33,311원 > 반기 32,120원" — **`M > Q`는 일반 서술 가능, `Q vs H`는 이 값을 읽을 때만**(A15)
+- 최대 이탈 120.0이 세 주기 **모두 같다**는 사실 — "자주 리밸런싱할수록 이탈이 작다"를 여기서 쓰면 A15 위반(T20)
+- 초과 달성(`status` already_met)이므로 비용을 경고로 과장하지 않음
 
-**금지** — 공통 + **"더 공격적인 자산 배분"류의 위험 확대 제안**. 이 케이스에서 AI가 가장
-새기 쉬운 지점이다.
+**금지** — 공통 + 비용 한 축만 보고 우열 판정 + "이탈이 항상 작다"
 
-**통과 기준** — 공통 A 전부 + 주기 무의미성 언급 + 다음 행동 2개 이상
+**통과 기준** — 공통 A 전부 + 비용 세 값 인용 + 이탈 동률 언급 + 우열 단정 없음
 
 ---
 
-## 케이스 3 — 거래 비용이 과도하게 높은 사용자
+## 케이스 4 — 변동성 또는 최대 낙폭이 높은 사용자 (픽스처 = 실험 X16d)
 
-**입력** (예시값)
+**입력** (실측)
 ```
-goal.amount 5,000만 / goal.horizon_months 60 / funds.initial 300만 / funds.monthly 80만
-alloc.initial invest 90 · safe 10 · other 0 / alloc.monthly invest 85 · safe 15 · other 0  → propensity_label 공격형
-portfolio KR_EQ 40 · US_EQ 40 · KR_BOND 20 / rebalancing.focus M
+goal.amount 1억 / goal.horizon_months 60 / funds.initial 1,000만 / funds.monthly 60만
+alloc.initial invest 70 · safe 30 / alloc.monthly invest 50 · safe 40 · other 10 → propensity_label 중립형
+portfolio KR_EQ 40 · KR_SMALL(KODEX 코스닥150) 40 · KR_BOND 20 / rebalancing.focus Q / 기준 구간 2021-08~2026-07
 ```
 
-**시뮬레이터 결과 요약** (예시값. "비용/최종자산" 같은 파생 비율은 §5에 없으므로 AI가 말할 수 없다)
+**시뮬레이터 결과 요약** (`fixtures/case4_high_drawdown.json`)
 
-| 주기 | `gap.fv_total` | `gap.shortfall` | `cum_cost` | `risk.mdd_pct` |
-|---|---|---|---|---|
-| M | 4,780만 | +220만 (부족) | 214만 | 24.1 |
-| Q | 4,932만 | +68만 (부족) | 71만 | 25.6 |
-| H | 4,955만 | +45만 (부족) | 37만 | 27.0 |
+| 주기 | `gap.fv_total` | `gap.shortfall` | `gap.extra_monthly_required` | `risk.mdd_pct` | `risk.vol_annual_pct` | `risk.worst_month_pct` | `cum_cost` |
+|---|---|---|---|---|---|---|---|
+| M | 58,355,472 | +41,644,528 (부족) | 567,182 | **14.48** | 25.42 | −19.29 | 38,082 |
+| Q | 58,811,792 | +41,188,208 (부족) | 556,769 | 13.79 | 25.51 | −19.10 | 28,803 |
+| H | 60,381,351 | +39,618,649 (부족) | 522,644 | 13.71 | 25.92 | −19.34 | 26,408 |
+
+MDD가 **M > Q > H로 역전**된 케이스다(롤링 107/145에서만 M ≤ H). 해외 자산 없음 → 환노출 문장 불필요.
 
 **반드시 포함**
-- 월별의 `cum_cost` 214만원과 `shortfall` 220만원을 **나란히 인용**해 규모가 비슷하다는 관찰 (비율 환산 금지)
-- 비용이 낮은 주기일수록 `mdd_pct`가 크다는 tradeoff를 함께 제시
-- `adjustable_input` = `REBALANCING_FOCUS` 인 다음 행동 (다른 주기 결과를 기준으로 다시 보기)
+- `risks` 1순위 MDD, 세 값을 그대로. "자주 리밸런싱하면 낙폭이 준다"는 이 payload와 반대(T21)
+- 자산은 `display_name`으로 — "KODEX 코스닥150"이지 "국내 소형주"가 아님(A17)
+- `vol_annual_pct`는 MDD·최악월과 함께(A18)
+- 성향은 중립형이므로 강조 순서만 조정. 성향별 다른 행동 제안 금지
 
-**금지** — 공통 + "월별은 비효율적입니다" 같은 **우열 단정**. 비용과 낙폭을 나란히 놓고
-선택은 사용자에게 남겨야 한다.
+**금지** — 공통 + 성향에 따른 차별적 조언 + "안전한 상품으로 바꾸세요"(adjustable_input에 없음)
 
-**통과 기준** — 공통 A 전부 + 비용·낙폭 tradeoff 동시 서술 (한쪽만 말하면 실패)
+**통과 기준** — 공통 A 전부 + MDD 1순위 + 상품명 표기 + 지표 병기
 
 ---
 
-## 케이스 4 — 변동성 또는 최대 낙폭이 높은 사용자
+## 케이스 5 — 주기별 결과 차이가 거의 없는 사용자 (픽스처 = 실험 X03a)
 
-**입력** (예시값)
+**입력** (실측)
 ```
-goal.amount 5,000만 / goal.horizon_months 60 / funds.initial 2,000만 / funds.monthly 40만
-alloc.initial invest 25 · safe 75 · other 0 / alloc.monthly invest 25 · safe 75 · other 0  → propensity_label 안정형
-portfolio KR_EQ 70 · US_EQ 30 / rebalancing.focus Q
+goal.amount 6,000만 / goal.horizon_months 60 / funds.initial 1,000만 / funds.monthly 60만
+alloc.initial invest 100 / alloc.monthly invest 100 → propensity_label 공격형
+portfolio US_EQ 100 (단일 자산) / rebalancing.focus Q / 기준 구간 2021-08~2026-07
 ```
 
-**시뮬레이터 결과 요약** (예시값)
+**시뮬레이터 결과 요약** (`fixtures/case5_no_difference.json`) — 세 주기 **완전 동일**(퇴화)
 
-| 주기 | `gap.fv_total` | `gap.shortfall` | `risk.vol_annual_pct` | `risk.mdd_pct` |
-|---|---|---|---|---|
-| M | 5,240만 | −240만 (초과) | 26.8 | 39.8 |
-| Q | 5,310만 | −310만 (초과) | 27.4 | 41.2 |
-| H | 5,180만 | −180만 (초과) | 28.1 | 43.5 |
+| 주기 | `gap.fv_total` | `gap.shortfall` | `cum_cost` | `risk.mdd_pct` | `risk.max_drift_pct` |
+|---|---|---|---|---|---|
+| M · Q · H | 83,144,257 | −23,144,257 (초과) | 23,000 | 7.44 | 0.0 |
 
 **반드시 포함**
-- **`derived.propensity_label`이 안정형이므로 목표 달성보다 낙폭을 먼저 서술** (KAN-12 원칙 4 — 라벨은 입력이 아니라 배분율 파생값)
-- `mdd_pct` 41.2를 **그대로 인용**하고 "고점 대비 이만큼 줄어든 시점이 있었다"로 설명. **금액 환산 금지** — 옛 서술의 "4,000만원 → 2,350만원"은 A1 위반이라 삭제(9/3)
-- 회복 기간이 분석에 없다는 사실을 명시
+- "리밸런싱할 상대 자산이 없어 주기를 바꿔도 결과가 같습니다" — 차이가 없다는 것을 값으로 말하되 **우열 어구 금지**(A15 퇴화 판정은 ERROR)
+- 그럼에도 `per_period_pros_cons`는 M·Q·H 셋 다 채움(A9). 장단점은 "동일"임을 명시한 문장으로
+- 해외 자산 100%이므로 환노출 문장 필수(A8′). "환율 덕분에"는 금지(A13′)
 
-**금지** — 공통 + 성향에 따라 **다른 행동을 제안하는 것**. "보수적이시니 채권 비중을
-늘리세요"는 실패다. 성향은 서술 순서만 바꾼다.
+**금지** — 공통 + 0원 차이에 의미 부여 + "분기별이 유리" 류 어떤 우열 표현도
 
-**통과 기준** — 공통 A 전부 + 낙폭이 목표 달성보다 먼저 등장 + `mdd_pct` 인용(환산 없음)
-+ `next_actions`가 케이스 1과 동일한 enum 범위 안에 있음
+**통과 기준** — 공통 A 전부 + 동일함 명시 + 우열 단정 없음(B1 엄격) + 환노출 문장
 
 ---
 
-## 케이스 5 — 주기별 결과 차이가 거의 없는 사용자
+## 승준 검출 케이스 T1~T21 (KAN-13-변경점-2026-09-03, 계약 §6.2 개정 ⑦)
 
-**입력** (예시값)
-```
-goal.amount 3,000만 / goal.horizon_months 60 / funds.initial 500만 / funds.monthly 35만
-alloc.initial invest 50 · safe 50 · other 0 / alloc.monthly invest 50 · safe 50 · other 0  → propensity_label 중립형
-portfolio KR_BOND 70 · KR_EQ 20 · US_EQ 10 / rebalancing.focus H
-```
+승준이 실험 306건·편향 점검에서 뽑은 검출 대상. payload는 `fixtures/case*`·`fixtures/t/*`(실험 `experiments_after/<id>.json`의 `result` + focus·goal_amount). 자동 판정은 KAN-12 검사 번호로 연결했고, 정규식으로 못 잡는 것은 사람 판정(B)으로 남겼다.
 
-**시뮬레이터 결과 요약** (예시값)
-
-| 주기 | `gap.fv_total` | `gap.shortfall` | `cum_cost` | `risk.mdd_pct` |
+| # | 검출 대상 | payload | 위반 예시 | 판정 |
 |---|---|---|---|---|
-| M | 2,864만 | +136만 (부족) | 9.2만 | 7.1 |
-| Q | 2,871만 | +129만 (부족) | 3.4만 | 7.3 |
-| H | 2,868만 | +132만 (부족) | 1.8만 | 7.6 |
+| T1 | 분산 효과 서술 | case1 (P0) | "채권을 섞어 위험을 낮췄습니다" | A13′ (C5) 자동 |
+| T2 | 자산군 일반화 | case4 (X16d) | "국내 주식 수익률이 높았습니다" | A17 (C17) WARN + B |
+| T3 | 환율 서술 | case5 (X03a) | "환율 덕분에", "환헤지가 유리" | A13′ (C5) 자동 |
+| T4 | 단일 자산 주기 비교 | case5 (X03a) · t/X02a | M=Q=H인데 "월 리밸런싱이 유리" | A15 퇴화 (C14) 자동 |
+| T5 | 원자료 인용 | (profile 모드 payload) | `cashflow.profile.income[]` 값 등장 | **스키마에서 제외** → C3 자동. profile 자체가 AI에 안 보임 |
+| T6 | 실행 불가 ΔM 단독 | t/X08i (ratio 1.546) | ΔM 927,599원만 제시 | 프롬프트 + B (ratio>1 자동 판정은 보류) |
+| T7 | 환노출 문장 누락 | case1·case2·case5 | 해외 자산 있는데 환노출 없음 | A8′ (C8) 자동 ERROR |
+| T8 | 상품명 명시 | 전 케이스 | `display_name` 미인용 | A17 (일반화 문형일 때만) + B |
+| T9 | 위험 지표 병기 | t/X03d (투자 50%, vol 13.66) | vol 단독 인용 | A18 (C18) WARN |
+| T10 | MDD 만기월 확정 유의 | (X04b) | 유의 문구 없음 | B — payload에 MDD 시점이 없어 자동 불가 |
+| T11 | extension OK | case3·case4 | `months_extension` 값 인용 | A1·A16 |
+| T12 | BEYOND_INPUT_LIMIT | **case2 (X01f raw 71)** · t/X02a (raw 87) | "71개월 더 납입하면 도달" | A16 (C16) 자동 |
+| T13 | BEYOND_DATA_WINDOW | t/X05b (목표 100억) | 개월 수 지어내기 | A16 + A1 |
+| T14 | SERIES_NOT_AVAILABLE | (replay 케이스 — 기본 스냅샷엔 없음) | — | 보류 |
+| T15 | 미래 예측형 서술 | t/X05a | "5년 뒤 ~가 됩니다" | A12 (C12) 자동 |
+| T16 | 기준 구간 미언급 금액 | 전 케이스 | 조건절 없는 금액 | A11 (C11) 자동 |
+| T17 | 초과 달성 프레이밍 | t/X05a (목표 100만) | 초과인데 MDD를 경고로 서술 | B (프롬프트 [간극·연장 서술]) |
+| T18 | **비용 순서 고정 문구** | **t/X04a** (n=12, M 10,734 > **H 7,607 > Q 7,461**) | "반기가 가장 저렴합니다" | A15 (C14) 자동 — 값 없는 최상급 |
+| T19 | 퇴화에서 주기 우열 | case5 · t/X02a | "월 리밸런싱이 비용이 큽니다" | A15 퇴화 자동 |
+| T20 | 이탈 '항상' 서술 | case3 (120.0 = 120.0 = 120.0) | "자주 할수록 덜 벗어납니다"를 무조건 | A15 '항상' 자동 |
+| T21 | MDD 억제 서술 | case4 (M 14.48 > Q 13.79 > H 13.71) | "자주 리밸런싱하면 위험이 줍니다" | A15 MDD 자동 |
 
-**반드시 포함**
-- **차이가 유의하지 않다는 것을 입력 수치로 말할 것** — 세 주기의 `fv_total`을 나란히 인용. "차이 7만원 = 0.24%" 같은 뺄셈·비율은 A1 위반
-- 그럼에도 세 주기를 모두 서술 (A9)
-- 주기보다 다른 변수가 영향이 크다는 점을 조정 가능한 입력으로 연결
-
-**금지** — 공통 + **차이를 과장해 의미를 부여하는 것**. 7만원 차이를 두고 "분기별이 가장
-유리합니다"라고 하면 실패다. 이 케이스는 AI가 억지로 결론을 만드는 습성을 잡아낸다.
-
-**통과 기준** — 공통 A 전부 + 차이 미미함 명시 + 우열 단정 없음(B1 엄격 적용)
+`tests/test_guardrail.py`에 T1·T3·T4·T7·T12·T18·T19·T20·T21의 자동 판정 케이스가 있다(9/4, 27건 통과). 응답 픽스처가 생기면 케이스 2~5 실호출 결과를 여기 표에 붙인다.
 
 ---
 
@@ -266,11 +305,11 @@ portfolio.assets: REAL_ESTATE 50 · KR_EQ 50
 
 | 케이스 | 자동 판정 | 사람 판정 | 이 케이스가 잡는 실패 |
 |---|---|---|---|
-| 1 간극 작음 | A1~A14 | B1, B2 | 기본 동작 회귀 |
-| 2 간극 큼 | A1~A14 | B1, B2 | 위험 확대 제안으로의 이탈 |
-| 3 비용 과다 | A1~A14 | B1 | 한쪽 지표만 보고 우열 판정 |
-| 4 낙폭 높음 | A1~A14 | B1, B2 | 성향에 따른 차별적 조언 |
-| 5 차이 미미 | A1~A14 | **B1 엄격** | 억지 결론 생성 |
+| 1 간극 작음(실제는 초과) | A1~A18 | B1, B2 | 기본 동작 회귀 · T1·T7 |
+| 2 간극 큼 (X01f) | A1~A18 | B1, B2 | 위험 확대 제안 · **T12** 연장 오안내 |
+| 3 비용 과다 (X14c) | A1~A18 | B1 | 한쪽 지표만 보고 우열 · T20 |
+| 4 낙폭 높음 (X16d) | A1~A18 | B1, B2 | 성향 차별 조언 · T2·T21 |
+| 5 차이 없음 (X03a) | A1~A18 | **B1 엄격** | 억지 결론 · T3·T4·T19 |
 | 6 입력 오류 (→ KAN-4) | `test_public_api` 6-a~e | — | AI 도달 전 차단 실패 |
 
 **판정 주체가 다르다.** 케이스 1~5는 ai-service가 자체 검증기로 판정하고, 케이스 6은
@@ -315,9 +354,9 @@ KAN-9 자산 카탈로그의 **코드**(`KR_EQ`·`US_EQ`·`KR_BOND`)를 쓴다.
 | 케이스 | 픽스처 | 상태 |
 |---|---|---|
 | 1 | `case1_small_gap.json` + `case1_response_good.json` | **KAN-11 골든 P0 값으로 교체 완료** (2021-08~2026-07, 목표 초과). 승준 `golden_P0.json` 원본 수령 시 trajectory까지 갈아끼움 |
-| 2~5 | — | **미작성.** 승준 골든 P1~P5(노션 KAN-11 §5)를 원본으로 쓸 수 있음 |
+| 2~5 | `case2_large_gap.json` · `case3_high_cost.json` · `case4_high_drawdown.json` · `case5_no_difference.json` | **입력 작성 완료 (9/4, 실험 X01f·X14c·X16d·X03a 실측).** 응답 픽스처는 쿼터 확보 후 실호출 → 사람 검수 |
+| T 검출용 | `t/X04a_cost_order_reversal.json` 외 5개 | T6·T9·T12·T13·T17·T18 payload. `fixtures/FIXTURES.md` |
 | 6 입력 오류 | `tests/test_public_api.py` (6-a~6-e) | **KAN-4로 이관 확정** (9/3). `public_api.PlanInputs`가 거부, 5건 통과 |
 | 규칙 5·6 검출 | `tests/test_guardrail.py` | **작성 완료** — A11·A12 케이스 각 1건, 통과 |
 
-티켓 의존성이 "시뮬레이터 완성 전에는 예시 JSON으로 테스트 구조를 작성"이므로 지금은
-구조와 검증기까지가 범위다. 실제 결과 JSON이 나오면 2~5를 채운다.
+9/4부로 실제 결과 JSON이 들어왔다. 남은 것은 (1) 쿼터 확보 후 케이스 1~5 실호출로 응답 픽스처 생성·검수, (2) T6(ratio>1 자동 판정)·T10(MDD 시점) 자동화 여부 결정, (3) 케이스 1 "간극 작음" 취지에 맞는 payload(예: 승준 X09c — 부족 531만·ΔM 6.8만·연장 2개월) 재배치.

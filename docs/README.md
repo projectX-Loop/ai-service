@@ -15,8 +15,8 @@ Jira · Notion   ← 유일한 기준(SSOT). 요구사항·계약·ERD·회의 �
 |---|---|---|---|---|
 | [KAN-04-API-명세.md](KAN-04-API-명세.md) | KAN-4 (JSON 응답 방식 = 성종현, BE↔FE 설계 = 도윤 · 9/3 카톡) | **호출 흐름·계산/설명 분리 근거·공개 API JSON 설계·KAN-9 대조표** | — (Spring은 도윤) | "전체가 어떻게 이어지나", "KAN-9와 맞나" |
 | [openapi/](openapi/) | KAN-4 | **공개 API OpenAPI(코드에서 생성) + 내부 HTTP OpenAPI + 예시 JSON 13개** — 도윤에게 주는 전달물 | `public_api.py` `scripts/export_openapi.py` | "응답 JSON의 정확한 모양", "Spring DTO를 뭘 보고 만드나" |
-| [KAN-12-AI-응답규격.md](KAN-12-AI-응답규격.md) | KAN-12 | AI 설명의 **입출력 스키마·프롬프트·금지 규칙·검증 체크리스트 C1~C15** | `schema.py` `prompt.py` `guardrail.py` | "AI가 뭘 받고 뭘 내놓나", "guardrail이 뭘 검사하나" |
-| [KAN-13-테스트세트.md](KAN-13-테스트세트.md) | KAN-13 | 품질 테스트 **케이스 6종 + 공통 검사 A1~A14** | `tests/test_guardrail.py` `fixtures/` | "이 응답이 통과인지 어떻게 판정하나" |
+| [KAN-12-AI-응답규격.md](KAN-12-AI-응답규격.md) | KAN-12 | AI 설명의 **입출력 스키마·프롬프트·금지 규칙·검증 체크리스트 C1~C18** | `schema.py` `prompt.py` `guardrail.py` | "AI가 뭘 받고 뭘 내놓나", "guardrail이 뭘 검사하나" |
+| [KAN-13-테스트세트.md](KAN-13-테스트세트.md) | KAN-13 | 품질 테스트 **케이스 6종(1~5 실측 픽스처) + 공통 검사 A1~A18 + 승준 검출 T1~T21** | `tests/test_guardrail.py` `fixtures/` | "이 응답이 통과인지 어떻게 판정하나" |
 | [KAN-15-지식문서.md](KAN-15-지식문서.md) | KAN-15 | **개념 8개 ↔ 문서 ↔ 출처·라이선스 매핑**, 작성 규칙 | `../knowledge/*.md` | "이 개념의 출처가 뭐냐", "문서를 어떻게 쓰나" |
 | [KAN-16-지식저장소.md](KAN-16-지식저장소.md) | KAN-16 | **청킹·임베딩·인덱스 선택 근거**, 검색 결합 | `knowledge/*.py` `db/` `scripts/` | "왜 600자, 왜 HNSW, 청크는 어떻게 고르나" |
 | [KAN-17-내부HTTP계약.md](KAN-17-내부HTTP계약.md) | KAN-17 | **`POST /rag/answer` 요청·응답 규약**, 예시 JSON 정상·실패 | `api.py` `client.py` `Dockerfile` | "Spring에서 어떻게 부르나", "status가 뭐가 있나" |

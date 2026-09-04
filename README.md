@@ -17,8 +17,8 @@ explainer/
   public_api.py    공개 API(브라우저↔Spring) JSON 계약 — KAN-4. 실행 안 함, Spring DTO의 원본
   knowledge/       chunking · embedding · store(pgvector) · retrieve(결과 필드 → 개념 청크)
 knowledge/         RAG 원재료 — 개념 문서 8개. 코드가 읽는 데이터 (KAN-15)
-fixtures/          KAN-11 골든 P0 실측값 기반 입력·정상 응답
-tests/             guardrail 15 · knowledge 45 · retrieve 18 · explain 10 · public_api 47 — 전부 LLM·DB 호출 없음
+fixtures/          케이스 1~5 입력(승준 골든 P0·실험 X01f·X14c·X16d·X03a 실측) + t/ 검출용 6개 + 정상 응답 1. 목록 fixtures/FIXTURES.md
+tests/             guardrail 27 · knowledge 45 · retrieve 18 · explain 10 · public_api 47 — 전부 LLM·DB 호출 없음
 scripts/           ingest.py(적재) · search.py(검색 평가) · export_openapi.py(OpenAPI 생성)
 db/                V1__knowledge.sql — knowledge_* 스키마. backend Flyway로 이관 예정
 docs/              설계 문서 6개 (KAN-04·12·13·15·16·17) + 인덱스 + openapi/(공개·내부 OpenAPI, 예시 JSON 13개)

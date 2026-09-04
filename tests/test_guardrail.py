@@ -115,6 +115,59 @@ def main() -> int:
                       "evidence": ["/per_period/Q/risk/mdd_pct", "chunk:concept/max_drawdown#0"]}],
               retrieved_refs=["concept/max_drawdown#0"]), True)
 
+    
+    # ── 2026-09-04 승준 KAN-12 변경점 2·3 + 계약 §6.2 개정 ⑦ (C14 자동 부분 · C16 · C17 · C18 · C8 환노출)
+    def with_summary(text, ev=None):
+        d = clone(); d["summary"] = {"text": text, "evidence": ev or ["/meta/window/start", "/meta/window/end", "/goal_amount"]}; return d
+
+    run("C14 고정 문구: 값 없는 '반기가 가장 저렴' 반려",
+        with_summary("2021-08~2026-07 시장이 반복된다면 목표 5,000만원을 넘습니다. 반기 리밸런싱이 가장 저렴합니다."), False)
+    run("C14 값 인용 비교는 허용: '분기 26,310원, 반기 25,917원'",
+        with_summary("2021-08~2026-07 시장이 반복된다면 목표 5,000만원을 넘습니다. 이 조건에서는 분기 26,310원, 반기 25,917원입니다.",
+                     ["/meta/window/start", "/meta/window/end", "/goal_amount", "/per_period/Q/cum_cost", "/per_period/H/cum_cost"]), True)
+    run("C14 '항상' 서술 반려",
+        with_summary("2021-08~2026-07 시장이 반복된다면 목표 5,000만원을 넘습니다. 자주 리밸런싱하면 이탈이 항상 작습니다."), False)
+    run("C14 MDD 억제 서술 반려",
+        with_summary("2021-08~2026-07 시장이 반복된다면 목표 5,000만원을 넘습니다. 자주 리밸런싱하면 낙폭이 줄어듭니다."), False)
+    run("C5 분산 효과 서술 반려",
+        with_summary("2021-08~2026-07 시장이 반복된다면 목표 5,000만원을 넘습니다. 채권을 섞어 위험을 낮췄습니다."), False)
+    run("C5 환율 우열 서술 반려",
+        with_summary("2021-08~2026-07 시장이 반복된다면 목표 5,000만원을 넘습니다. 환율 덕분에 수익이 좋았습니다."), False)
+
+    # C16 — extension_status가 OK가 아닌데 연장 개월을 도달 안내로 서술
+    src_beyond = copy.deepcopy(SRC.model_dump(mode="json"))
+    for p in ("M", "Q", "H"):
+        src_beyond["per_period"][p]["gap"].update({"extension_status": "BEYOND_INPUT_LIMIT", "months_extension": None, "months_extension_raw": 71})
+    run("C16 BEYOND_INPUT_LIMIT 인데 '71개월 더 납입하면 도달' 반려",
+        with_summary("2021-08~2026-07 시장이 반복된다면 목표 5,000만원에 미치지 못합니다. 71개월 더 납입하면 도달합니다.",
+                     ["/meta/window/start", "/meta/window/end", "/goal_amount", "/per_period/Q/gap/months_extension_raw"]),
+        False, source=SimulationInput.model_validate(src_beyond))
+    run("C16 BEYOND_INPUT_LIMIT 에서 '범위를 넘습니다' 서술은 허용",
+        with_summary("2021-08~2026-07 시장이 반복된다면 분기 리밸런싱 기준 목표 5,000만원에 미치지 못합니다. 데이터상 71개월이면 도달하나 입력 가능 범위를 넘습니다.",
+                     ["/meta/window/start", "/meta/window/end", "/goal_amount", "/per_period/Q/gap/months_extension_raw"]),
+        True, source=SimulationInput.model_validate(src_beyond))
+
+    # C14 퇴화 — 세 주기 결과가 같을 때 우열 서술
+    src_same = copy.deepcopy(SRC.model_dump(mode="json"))
+    for p in ("M", "Q", "H"):
+        src_same["per_period"][p]["gap"]["fv_total"] = 50284194; src_same["per_period"][p]["cum_cost"] = 0
+    run("C14 퇴화(M=Q=H)에서 '월 리밸런싱은 비용이 큽니다' 반려",
+        with_summary("2021-08~2026-07 시장이 반복된다면 목표 5,000만원을 넘습니다. 월 리밸런싱은 비용이 큽니다."),
+        False, source=SimulationInput.model_validate(src_same))
+
+    # C8 — 해외 자산 있는데 환노출 미언급 → ERROR
+    d = clone(); d["assumptions_note"] = {"text": "기준 구간 2021-08~2026-07의 실제 월간 총수익률을 재생한 결과이며 안전저축 금리는 연 2.96%로 고정했습니다.",
+                                          "evidence": ["/meta/window/start", "/meta/window/end", "/meta/safe_rate_annual_pct"]}
+    run("C8 해외 자산(US_EQ) 있는데 환노출 미언급 반려", d, False)
+
+    # C3 — 새 필드 경로가 인용 가능해야 함 (스키마에 들어왔는지)
+    run("C3 새 gap 필드 경로 인용 가능 (/per_period/Q/gap/extension_status)",
+        with_summary("2021-08~2026-07 시장이 반복된다면 분기 리밸런싱 기준 목표 5,000만원을 넘습니다.",
+                     ["/meta/window/start", "/meta/window/end", "/goal_amount", "/per_period/Q/gap/extension_status", "/per_period/Q/gap/status"]), True)
+    run("C3 cashflow.profile 은 스키마 밖 — 인용하면 반려",
+        with_summary("2021-08~2026-07 시장이 반복된다면 목표 5,000만원을 넘습니다.",
+                     ["/meta/window/start", "/meta/window/end", "/goal_amount", "/cashflow/profile"]), False)
+
     fails = [n for n, ok in results if not ok]
     print(f"\n=== {len(results) - len(fails)}/{len(results)} 통과 ===")
     return 1 if fails else 0

@@ -170,6 +170,21 @@ LECTURE_RE = re.compile(r"낭비|과소비|씀씀이|헤프|절약하세요|아�
 FUTURE_CLAIM_RE = re.compile(r"(\d+\s*년\s*(뒤|후)|만기\s*(에|시)|미래에|앞으로)[^.!?\n]{0,30}(됩니다|될\s*것|도달합니다|도달할|모입니다|만들어집니다)")
 CONDITIONAL_RE = re.compile(r"반복된다면|그대로라면|가정하면|재현|기준 구간|같은 흐름|과거 구간|반복될 경우|재생")
 
+# ── 2026-09-03 승준 KAN-12 변경점 2 (실험 306건·편향 점검 근거) + 계약 v0.2 §6.2 개정 ⑦ (9/4 확정)
+# 분산·채권 편입이 위험을 낮췄다 — 기준 구간 주식·채권 상관 +0.26이라 사실과 반대
+DIVERSIFY_RE = re.compile(r"(분산\s*(투자|효과)|채권을?\s*(섞|더해|포함|편입)|자산을?\s*나눠)[^.!?\n]{0,30}(위험|변동성|낙폭)[^.!?\n]{0,12}(낮|줄|완화|상쇄|억제)")
+# 환율·환헤지 우열 — 상품 우열 권유
+FX_RE = re.compile(r"환율\s*덕분|환차익\s*덕|환헤지가?\s*(유리|낫|좋)|환헤지를?\s*(권|추천)|환노출이\s*(유리|불리)")
+# 값 없는 주기 고정 문구 — "반기가 가장 저렴" 류. 같은 문장에 수치가 있으면 payload 인용으로 보고 허용
+PERIOD_SUPERLATIVE_RE = re.compile(r"(월|분기|반기)(별|\s*리밸런싱)?[^.!?\n]{0,14}(가장|제일|항상|언제나|무조건)\s*(저렴|싸|적|낮|높|크|유리|불리)")
+PERIOD_ALWAYS_RE = re.compile(r"(항상|언제나|무조건|어떤\s*경우에도)[^.!?\n]{0,20}(이탈|비용|낙폭|위험)")
+# "자주 리밸런싱하면 위험(MDD)이 준다" — 롤링 107/145라 구조적 성질 아님
+PERIOD_MDD_RE = re.compile(r"(자주|잦|짧을수록|빈번)[^.!?\n]{0,20}(위험|낙폭|MDD)[^.!?\n]{0,12}(줄|낮|감소|작아)")
+# 자산군 일반화 — 상품명(display_name) 없이 "국내 주식 수익률이 높았다"
+GENERALIZE_RE = re.compile(r"(국내|해외|미국|한국)\s*(주식|채권)[^.!?\n]{0,20}(수익률|수익|성과|가격)[^.!?\n]{0,12}(높|좋|낮|나쁘|부진|상승|하락)")
+# 연장 개월 수 서술 — extension_status가 OK가 아닌데 "N개월 더 ... 도달"
+EXTENSION_CLAIM_RE = re.compile(r"\d+\s*개월[^.!?\n]{0,6}(더|연장|추가)[^.!?\n]{0,25}(도달|달성)")
+
 SENTENCE_SPLIT = re.compile(r"[.!?\n]")
 
 
@@ -194,6 +209,29 @@ def check_forbidden(text: str) -> list[tuple[str, str]]:
             hits.append(("성향 라벨의 인격 단정 (KAN-9 규칙 4)", s))
         if LECTURE_RE.search(s):
             hits.append(("지출·소비 습관 평가·훈계 (KAN-9 규칙 7)", s))
+        if DIVERSIFY_RE.search(s):
+            hits.append(("분산·채권 편입이 위험을 낮췄다는 서술 (승준 변경점 2 — 기준 구간 상관 +0.26)", s))
+        if FX_RE.search(s):
+            hits.append(("환율·환헤지 우열 서술 (승준 변경점 2)", s))
+    return hits
+
+
+def check_period_claims(text: str, degenerate: bool) -> list[tuple[str, str]]:
+    """C14 자동 부분 — 주기 고정 문구·'항상'·MDD 억제·퇴화 케이스 우열 (계약 v0.2 §6.2 개정 ⑦)."""
+    hits: list[tuple[str, str]] = []
+    for sentence in SENTENCE_SPLIT.split(text):
+        s = sentence.strip()
+        if not s:
+            continue
+        has_number = bool(NUMBER_RE.search(DATE_RE.sub(" ", s)) and re.search(r"\d", DATE_RE.sub(" ", s)))
+        if PERIOD_SUPERLATIVE_RE.search(s) and not has_number:
+            hits.append(("값 없는 주기 고정 문구 — payload 값을 인용할 때만 비교 가능", s))
+        if PERIOD_ALWAYS_RE.search(s):
+            hits.append(("주기 성질을 '항상'으로 서술 — 롤링에서도 예외 존재", s))
+        if PERIOD_MDD_RE.search(s):
+            hits.append(("자주 리밸런싱하면 위험이 준다는 서술 — 구조적 성질 아님(롤링 107/145)", s))
+        if degenerate and re.search(r"(월|분기|반기)[^.!?\n]{0,14}(유리|불리|낫|저렴|비용이\s*(크|많|적))", s):
+            hits.append(("세 주기 결과가 같은데 주기 우열 서술", s))
     return hits
 
 
@@ -302,13 +340,53 @@ def validate(exp: Explanation, source: SimulationInput | dict,
     if not _window_mentioned(an, window):
         v.append(Violation("C8", "ERROR", "assumptions_note에 기준 구간(meta.window)이 없음"))
     if "환" not in an:
-        v.append(Violation("C8", "WARN", "assumptions_note에 환노출 언급 없음 (KAN-9 §7)"))
+        foreign = any(str(a.get("code", "")).startswith("US_") or a.get("tax_class") == "foreign_listed"
+                      for a in data.get("meta", {}).get("assets_used", []))
+        if foreign:
+            v.append(Violation("C8", "ERROR", "해외 자산이 있는데 assumptions_note에 환노출 언급 없음 (KAN-9 §7 · 승준 변경점 3)"))
     if not an.strip():
         v.append(Violation("C8", "ERROR", "assumptions_note가 비어 있음"))
 
     # C11 — summary에 기준 구간 언급 (KAN-9 규칙 6: 조건절 없는 금액 서술 금지)
     if not _window_mentioned(exp.summary.text, window):
         v.append(Violation("C11", "ERROR", "summary에 기준 구간 언급 없음 (규칙 6)"))
+
+    # C14 (자동 부분) — 주기 고정 문구·항상·MDD 억제·퇴화 우열. 나머지 우열 판정은 사람(C14 사람)
+    periods = data.get("per_period", {}) or {}
+    fvs = {(p.get("gap", {}) or {}).get("fv_total") for p in periods.values()}
+    costs = {p.get("cum_cost") for p in periods.values()}
+    degenerate = len(periods) >= 2 and len(fvs) == 1 and len(costs) == 1
+    for where, text, _ev in claims:
+        for reason, s in check_period_claims(text, degenerate):
+            v.append(Violation("C14", "ERROR", f"{where}: {reason} — \"{s}\""))
+
+    # C16 — 연장 서술이 gap.extension_status와 어긋남 (승준 변경점 1). focus 주기 우선, 없으면 전체
+    statuses = {k: (p.get("gap", {}) or {}).get("extension_status") for k, p in periods.items()}
+    focus_key = data.get("focus")
+    check_keys = [focus_key] if focus_key in statuses else list(statuses)
+    non_ok = {k: statuses[k] for k in check_keys if statuses.get(k) not in (None, "OK")}
+    if non_ok:
+        for where, text, _ev in claims:
+            for sentence in SENTENCE_SPLIT.split(text):
+                s = sentence.strip()
+                if EXTENSION_CLAIM_RE.search(s) and not re.search(r"범위|넘|초과|확인할 수 없", s):
+                    v.append(Violation("C16", "ERROR",
+                        f"{where}: extension_status={non_ok} 인데 연장 개월을 도달 안내로 서술 — \"{s}\""))
+
+    # C17 — 자산군 일반화 (승준 변경점 3: assets_used.display_name 으로 부를 것)
+    names = [a.get("display_name", "") for a in data.get("meta", {}).get("assets_used", []) if a.get("display_name")]
+    for where, text, _ev in claims:
+        for sentence in SENTENCE_SPLIT.split(text):
+            s = sentence.strip()
+            if GENERALIZE_RE.search(s) and not any(n and n in s for n in names):
+                v.append(Violation("C17", "WARN", f"{where}: 자산군 일반화 — display_name으로 지칭할 것 — \"{s}\""))
+
+    # C18 — vol_annual_pct 단독 인용 (목표 비중 기준이라 총자산 위험으로 오독)
+    for where, _text, ev in claims:
+        ptrs = [e for e in ev if not e.startswith("chunk:")]
+        if any(e.endswith("/vol_annual_pct") for e in ptrs) and not any(
+                e.endswith("/mdd_pct") or e.endswith("/worst_month_pct") for e in ptrs):
+            v.append(Violation("C18", "WARN", f"{where}: vol_annual_pct 단독 인용 — mdd_pct·worst_month_pct와 함께"))
 
     # C10 — 선택된 주기 반영 (PRD 수용기준 4). focus는 KAN-9 §5에 없어 backend가 함께 넘긴다
     focus = data.get("focus")

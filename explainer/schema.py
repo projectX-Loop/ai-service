@@ -54,8 +54,9 @@ class Window(Lenient):
 
 class AssetUsed(Lenient):
     code: str             # KR_EQ / US_EQ / KR_BOND …
-    display_name: str = ""
+    display_name: str = ""    # AI는 자산군("국내 주식")이 아니라 이 상품명으로 부른다 (승준 KAN-12 변경점 3)
     instrument: str = ""
+    tax_class: str = ""       # domestic_equity | domestic_listed_other | foreign_listed
 
 
 class Meta(Lenient):
@@ -68,6 +69,12 @@ class Meta(Lenient):
     generated_at: str = ""
     safe_rate_annual_pct: float | None = None
     warnings: list[str] = Field(default_factory=list)
+    # v0.3 추가 (승준 골든 실측). assumptions_note 분기 근거
+    start_month: str = ""
+    target_month: str = ""
+    cashflow_source: str = ""             # none | summary | profile
+    series_used: list[str] = Field(default_factory=list)
+    options: dict | None = None           # growth_mode · safe_rate_mode · lot_rounding · account
 
 
 class Derived(Lenient):
@@ -87,7 +94,14 @@ class Gap(Lenient):
     fv_total: int                         # 만기 총자산
     shortfall: int                        # goal − FV. 양수 부족, 음수 잉여
     extra_monthly_required: int | None = None   # ΔM. null = 산출 불가
-    months_extension: int | None = None         # n′. null = 공통 구간 내 미도달
+    months_extension: int | None = None         # n′. 재제출 가능한 값일 때만, 아니면 null
+    # ── 2026-09-03 승준 엔진 변경 A (도윤 노션 계약 정리 §0 "반영 ①"). null 하나로 뭉개지던 연장 사유를 분기한다
+    months_extension_raw: int | None = None     # 자르기 전 n′−n. 참고 정보 — 이 값으로 재제출하면 GOAL_HORIZON_RANGE
+    extension_status: str | None = None         # OK | BEYOND_INPUT_LIMIT | BEYOND_DATA_WINDOW | SERIES_NOT_AVAILABLE
+    extra_monthly_ratio: float | None = None    # ΔM ÷ cashflow.surplus_headroom. 상수 경로(v0.2)는 null
+    status: str | None = None                   # already_met | exact | short | unreachable
+    basis: str | None = None                    # pre_tax | after_tax
+    delta_m_model: str | None = None            # lot_rounding 시 "continuous"
 
 
 class TrajectoryPoint(Lenient):
@@ -97,11 +111,30 @@ class TrajectoryPoint(Lenient):
     total: int
 
 
+class Tax(Lenient):
+    realized_cum: int | None = None
+    fv_after_tax: int | None = None
+
+
 class PeriodResult(Lenient):
     trajectory: list[TrajectoryPoint] = Field(default_factory=list)
     cum_cost: int
     risk: Risk
     gap: Gap
+    tax: Tax | None = None                # options.account 켜졌을 때만
+
+
+class Cashflow(Lenient):
+    """§5 cashflow 블록 (v0.3). `profile`(12개월 소득·지출 원자료)은 **일부러 받지 않는다** —
+    승준 KAN-12 변경점 2 "원자료 인용 금지". 스키마에 없으면 프롬프트에도 안 들어가고 C3가 인용을 반려한다."""
+
+    monthly_contribution: list[int] = Field(default_factory=list)   # 월별 실제 납입 M_t
+    surplus_rate_pct: float | None = None
+    bonus_share_pct: float | None = None          # 30% 이상이면 "상여월 시장 상황에 민감" 서술 허용
+    months_zero: int | None = None                # 납입 0인 달 수 (비상자금 충당기)
+    emergency_filled_month: int | None = None
+    growth_effect_pct: float | None = None
+    surplus_headroom: int | None = None           # ΔM 실행 가능성의 분모. 상수 경로는 null
 
 
 class SimulationInput(Lenient):
@@ -115,6 +148,7 @@ class SimulationInput(Lenient):
     meta: Meta
     derived: Derived = Field(default_factory=Derived)
     per_period: dict[Period, PeriodResult]
+    cashflow: Cashflow | None = None       # v0.2 경로(9/7)는 profile 없는 상수 경로 → 파생값 대부분 null
     # 아래 둘은 KAN-9 §5 출력에 없다. backend가 요청 시 함께 넘긴다 (KAN-9 반영 요청).
     focus: Period | None = None            # rebalancing.focus — PRD 수용기준 4
     goal_amount: int | None = None         # goal.amount — "목표 5,000만원"을 말할 근거. 없으면 AI가 목표액을 언급 못 함
