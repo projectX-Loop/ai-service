@@ -87,6 +87,19 @@ short = {"answer": {"text": "네, 맞습니다.", "evidence": ["/goal_amount"]},
 out6 = llm.ask(SRC, "목표금액 5천만원 맞아?", client=FakeGemini([short]), retriever=retriever)
 check("기준구간 언급 없는 짧은 답도 통과 (C11 미적용)", out6.report.passed, [str(v) for v in out6.report.errors])
 
+# 7) 멀티턴 — history가 프롬프트에 들어가고, evidence는 여전히 새로 검증된다
+history = [{"question": "분기별로 하면 얼마나 모여?", "answer": "6,975만원입니다."}]
+fake7 = FakeGemini([GOOD])
+out7 = llm.ask(SRC, "그럼 반기별로는?", client=fake7, retriever=retriever, history=history)
+check("history가 프롬프트에 포함됨", "분기별로 하면 얼마나 모여?" in fake7.prompts[0] and "6,975만원입니다." in fake7.prompts[0])
+check("history 있어도 evidence는 새로 검증 통과", out7.report.passed)
+
+# 8) history 없이도(빈 리스트·None) 기존과 동일하게 동작 — 하위호환
+out8 = llm.ask(SRC, "질문", client=FakeGemini([GOOD]), retriever=retriever, history=[])
+check("history 빈 배열도 정상 동작", out8.report.passed)
+out8b = llm.ask(SRC, "질문", client=FakeGemini([GOOD]), retriever=retriever)
+check("history 생략(기본 None)도 정상 동작", out8b.report.passed)
+
 fails = [n for n, ok in results if not ok]
 print(f"\n=== {len(results)-len(fails)}/{len(results)} 통과 ===")
 sys.exit(1 if fails else 0)

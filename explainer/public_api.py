@@ -178,10 +178,22 @@ class ExplanationResponse(BaseModel):
 # ─────────────────────────────────────────── 질문 답변 (KAN-24 — 9/5 도윤 구두 확인)
 
 
+class QuestionHistoryItem(Strict):
+    """세션 내 이전 질문·답변 한 쌍. 서버는 저장하지 않으므로 호출부(Spring/프론트)가 들고 있다가 매번 동봉한다."""
+
+    question: str
+    answer: str
+
+
 class QuestionRequest(Strict):
-    """POST /plans/{public_id}/questions 요청 본문. 이력 없음 — 매 호출이 독립(대화 저장 안 함)."""
+    """POST /plans/{public_id}/questions 요청 본문. 서버는 세션을 저장하지 않는다(대화 저장 안 함) —
+    멀티턴이 되려면 history에 이전 질문·답변을 그대로 실어 보낸다. 비어 있으면 단발 질문과 동일하게 동작."""
 
     question: str = Field(min_length=1, max_length=500, description="자유 질문 텍스트")
+    history: list[QuestionHistoryItem] = Field(
+        default_factory=list,
+        description="이 세션에서 지금까지의 질문·답변. 빈 배열이면 단발 질문(이전 대화 없음)과 동일"
+    )
 
 
 class QuestionStatus(str, Enum):

@@ -147,9 +147,9 @@ class AskResponse(BaseModel):
 
 @app.post("/rag/ask", response_model=AskResponse, response_model_exclude_none=False)
 def rag_ask(payload: dict) -> JSONResponse:
-    """단발 질문. body = /rag/answer와 같은 계산 결과 JSON + "question" 필드 하나.
+    """단발/멀티턴 질문. body = /rag/answer와 같은 계산 결과 JSON + "question" + 선택적 "history".
 
-    이력 없음 — 매 호출이 독립. 채팅 UI가 있어도 서버는 대화를 기억하지 않는다.
+    서버는 세션을 저장하지 않는다 — history는 매 호출마다 호출부(Spring)가 들고 있다가 그대로 넘긴다.
     """
     question = payload.get("question")
     if not isinstance(question, str) or not question.strip():
@@ -163,7 +163,8 @@ def rag_ask(payload: dict) -> JSONResponse:
             },
         )
 
-    result_payload = {k: v for k, v in payload.items() if k != "question"}
+    history = payload.get("history") or []
+    result_payload = {k: v for k, v in payload.items() if k not in ("question", "history")}
     try:
         source = SimulationInput.model_validate(result_payload)
     except ValidationError as e:
@@ -178,7 +179,7 @@ def rag_ask(payload: dict) -> JSONResponse:
         )
 
     try:
-        outcome = llm.ask(source, question, retriever=_retriever)
+        outcome = llm.ask(source, question, retriever=_retriever, history=history)
     except llm.ExplanationRejected as e:
         log.warning("ask guardrail rejected: %s", e)
         return JSONResponse(

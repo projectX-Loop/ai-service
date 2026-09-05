@@ -20,7 +20,7 @@ explainer/
   knowledge/       chunking · embedding · store(pgvector) · retrieve(결과 필드 → 개념 청크)
 knowledge/         RAG 원재료 — 개념 문서 8개. 코드가 읽는 데이터 (KAN-15)
 fixtures/          케이스 1~5 입력(승준 골든 P0·실험 X01f·X14c·X16d·X03a 실측) + t/ 검출용 6개 + inputs/(승준 페르소나) + 검수된 응답 4(케이스 1·3·4·5). 목록 fixtures/FIXTURES.md
-tests/             guardrail 31 · knowledge 45 · retrieve 18 · explain 10 · public_api 53 · calculate 15 · ask 9 = 181 — 전부 LLM·DB 호출 없음
+tests/             guardrail 31 · knowledge 45 · retrieve 18 · explain 10 · public_api 53 · calculate 15 · ask 13 = 185 — 전부 LLM·DB 호출 없음
 scripts/           ingest.py(적재) · search.py(검색 평가) · export_openapi.py(OpenAPI 생성) · smoke.py(통합 스모크, 9/5 합숙용)
 db/                V1__knowledge.sql — knowledge_* 스키마. backend Flyway로 이관 예정
 docs/              설계 문서 6개 (KAN-04·12·13·15·16·17) + 인덱스 + openapi/(공개·내부 OpenAPI, 예시 JSON 13개)
@@ -99,7 +99,7 @@ python3 scripts/smoke.py http://localhost:8000 --llm           # /rag/answer 실
 
 ai-service가 서빙하지 않는다. **Spring DTO의 원본**을 여기서 정하고(`explainer/public_api.py`) OpenAPI로 뽑아 도윤에게 준다 — 9/3 분담. 경로·상태 코드는 노션 §4(도윤), JSON 본문은 이 레포. `calculation`·`explanation`은 `schema.py` 모델 재사용이라 내부 계약과 어긋날 수 없다.
 
-- [`docs/openapi/public-api.openapi.json`](docs/openapi/public-api.openapi.json) — 6 엔드포인트 · 39 스키마 (`POST /plans/{public_id}/questions` = KAN-24 질문답변 스트레치)
+- [`docs/openapi/public-api.openapi.json`](docs/openapi/public-api.openapi.json) — 6 엔드포인트 · 40 스키마 (`POST /plans/{public_id}/questions` = KAN-24 질문답변 스트레치, 멀티턴 `history` 포함)
 - [`docs/openapi/examples/`](docs/openapi/examples/) — 요청·응답·오류 예시 17개. `tests/test_public_api.py`가 전부 계약과 대조
 - 결정 4가지(오류 봉투·explanation 필드·`focus/goal_amount` 조립·samples 목록형)는 [`docs/KAN-04`](docs/KAN-04-API-명세.md) §3
 
@@ -140,10 +140,11 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 
 9/5 도윤 구두 확인("간단한 채팅이라도 있으면 좋겠다") 후 구현, **KAN-24로 사후 등록**(회의·PRD·기존 티켓엔 없던 범위). `feature/rag-ask` 브랜치(ai-service·frontend 둘 다), `develop` 머지는 별도 지시 대기.
 
-- ai-service 쪽은 **세션 개념과 무관하게 stateless** — 매 질문이 독립 호출, `agent_message`류 저장도 없음(9/7 스코프 밖)
+- **서버는 세션을 저장하지 않는다** — `agent_message`류 저장 없음(9/7 스코프 밖). 대신 **멀티턴 지원**: `ask()`가 `history`(이전 질문·답변 배열)를 받아 `build_ask_message`가 프롬프트 텍스트에 "이전 대화" 절로 얹는다. Gemini `contents`(role 구조)는 안 건드림 — 가드레일 재시도 루프가 이미 그 구조를 쓰고 있어 엉키는 걸 피함
+- **가드레일은 안 바뀜** — history가 있어도 새 답변의 evidence는 여전히 계산 결과 JSON에서만 다시 찾아야 한다(프롬프트에 명시). 이전 답변을 근거로 삼는 것 금지
 - `explain()`/`validate()`와 최대한 재사용: SYSTEM 프롬프트·숫자환각(C4)·evidence(C2·C3)·금지표현(C5) 등은 공유, Explanation 구조 전용 검사(C6·C8·C10·C11)만 제외
-- 검증: `tests/test_ask.py` 9건 — 전부 가짜 Gemini(FakeGemini)로 네트워크 없이. **실제 Gemini 호출로는 아직 안 돌려봄**
-- **프론트는 단발 입력창이 아니라 채팅 목록(사이드바)** — `ChatPanel.vue`, 여러 세션을 만들고 전환. 세션은 `plan.public_id` 스코프(로그인 없음), 지금은 프론트 `localStorage`(`src/chat/store.ts`)로만 저장. 목 데이터로 세션 생성·전환·새로고침 유지까지 브라우저 확인 완료. Spring `/plans/{id}/questions` 실구현 없음(백엔드 레포가 아직 빈 상태)이라 실서버 연동 미검증 — 상세는 `frontend/README.md`
+- 검증: `tests/test_ask.py` 13건(멀티턴 4건 포함) — 전부 가짜 Gemini(FakeGemini)로 네트워크 없이. **실제 Gemini 호출로 멀티턴 맥락 유지는 아직 안 돌려봄**
+- **프론트는 단발 입력창이 아니라 채팅 목록(사이드바)** — `ChatPanel.vue`, 여러 세션을 만들고 전환. 같은 세션 안에서는 진짜 대화형(이전 질문·답변 기억). 세션은 `plan.public_id` 스코프(로그인 없음), 지금은 프론트 `localStorage`(`src/chat/store.ts`)로만 저장. 목 데이터로 세션 생성·전환·새로고침 유지·**멀티턴 history 실제 전송(브라우저 콘솔로 확인)**까지 완료. Spring `/plans/{id}/questions` 실구현 없음(백엔드 레포가 아직 빈 상태)이라 실서버 연동 미검증 — 상세는 `frontend/README.md`
 - PR 아직 안 만듦(GitHub이 자동으로 링크 제안하지만 미생성)
 
 ## 미검증 · 다음

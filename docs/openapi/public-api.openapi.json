@@ -4953,9 +4953,29 @@
         "title": "ProsCons",
         "type": "object"
       },
+      "QuestionHistoryItem": {
+        "additionalProperties": false,
+        "description": "세션 내 이전 질문·답변 한 쌍. 서버는 저장하지 않으므로 호출부(Spring/프론트)가 들고 있다가 매번 동봉한다.",
+        "properties": {
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "QuestionHistoryItem",
+        "type": "object"
+      },
       "QuestionRequest": {
         "additionalProperties": false,
-        "description": "POST /plans/{public_id}/questions 요청 본문. 이력 없음 — 매 호출이 독립(대화 저장 안 함).",
+        "description": "POST /plans/{public_id}/questions 요청 본문. 서버는 세션을 저장하지 않는다(대화 저장 안 함) —\n멀티턴이 되려면 history에 이전 질문·답변을 그대로 실어 보낸다. 비어 있으면 단발 질문과 동일하게 동작.",
         "properties": {
           "question": {
             "description": "자유 질문 텍스트",
@@ -4963,6 +4983,14 @@
             "minLength": 1,
             "title": "Question",
             "type": "string"
+          },
+          "history": {
+            "description": "이 세션에서 지금까지의 질문·답변. 빈 배열이면 단발 질문(이전 대화 없음)과 동일",
+            "items": {
+              "$ref": "#/components/schemas/QuestionHistoryItem"
+            },
+            "title": "History",
+            "type": "array"
           }
         },
         "required": [

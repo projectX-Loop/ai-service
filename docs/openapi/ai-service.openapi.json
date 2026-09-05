@@ -1802,7 +1802,7 @@
     "/rag/ask": {
       "post": {
         "summary": "Rag Ask",
-        "description": "단발 질문. body = /rag/answer와 같은 계산 결과 JSON + \"question\" 필드 하나.\n\n이력 없음 — 매 호출이 독립. 채팅 UI가 있어도 서버는 대화를 기억하지 않는다.",
+        "description": "단발/멀티턴 질문. body = /rag/answer와 같은 계산 결과 JSON + \"question\" + 선택적 \"history\".\n\n서버는 세션을 저장하지 않는다 — history는 매 호출마다 호출부(Spring)가 들고 있다가 그대로 넘긴다.",
         "operationId": "rag_ask_rag_ask_post",
         "requestBody": {
           "content": {

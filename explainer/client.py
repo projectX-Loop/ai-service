@@ -242,10 +242,12 @@ def _parse_ask(response) -> AskAnswer:
 
 
 def ask(source: SimulationInput, question: str, *, client: genai.Client | None = None,
-        retriever: Retriever | None = None) -> AskOutcome:
-    """단발 질문 답변. explain()과 같은 재시도·검증 루프를 쓰고 스키마·프롬프트·가드레일만 다르다.
+        retriever: Retriever | None = None, history: list[dict] | None = None) -> AskOutcome:
+    """단발/멀티턴 질문 답변. explain()과 같은 재시도·검증 루프를 쓰고 스키마·프롬프트·가드레일만 다르다.
 
-    이력 없음 — 매 호출이 독립. 검색은 explain()과 동일하게 결과 필드 기반(질문 텍스트 무관, 결정론).
+    history: [{"question": str, "answer": str}, ...] — 이 세션에서 이미 나눈 대화(호출부가 들고 있다가
+    매번 넘긴다. ai-service는 세션을 저장하지 않는다 — 저장 책임은 프론트/백엔드).
+    검색은 explain()과 동일하게 결과 필드 기반(질문 텍스트 무관, 결정론) — history는 검색에 영향 없음.
     """
     client = client or genai.Client(api_key=_api_key(), http_options=_http_options())
 
@@ -261,7 +263,9 @@ def ask(source: SimulationInput, question: str, *, client: genai.Client | None =
             chunks, chunk_exists = [], None
 
     contents: list[types.Content] = [
-        types.Content(role="user", parts=[types.Part(text=prompt.build_ask_message(source, chunks, question))])
+        types.Content(role="user", parts=[types.Part(
+            text=prompt.build_ask_message(source, chunks, question, history=history)
+        )])
     ]
 
     last_report: Report | None = None
