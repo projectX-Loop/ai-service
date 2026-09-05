@@ -165,7 +165,7 @@ class ExplanationResponse(BaseModel):
     """POST /plans/{public_id}/explanation 200 본문. 항상 200이고 성패는 `status` (KAN-17 규약 그대로).
 
     ai-service 응답에서 `explanation`·`status`·`message` 만 노출한다. `attempts`·`violations`·`retrieved_refs` 는
-    디버깅·저장용(agent_message)이라 브라우저에 주지 않는다.
+    디버깅·저장용(plan_explanation, 9/5 ERD 통합 — 구 agent_message)이라 브라우저에 주지 않는다.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -206,7 +206,8 @@ class QuestionResponse(BaseModel):
     """POST /plans/{public_id}/questions 200 본문. ExplanationResponse와 같은 모양(status로 분기).
 
     ai-service POST /rag/ask 의 answer(schema.Claim) 그대로 노출. attempts·retrieved_refs·violations는
-    디버깅·저장용(agent_message, KAN-24)이라 브라우저에 주지 않는다 — ExplanationResponse와 동일한 원칙.
+    디버깅·저장용(plan_explanation, KAN-24 — 9/5 ERD 통합, 구 agent_message)이라 브라우저에 주지 않는다 —
+    ExplanationResponse와 동일한 원칙.
     """
 
     model_config = ConfigDict(extra="forbid")
