@@ -11,16 +11,16 @@ Spring 백엔드가 내부 HTTP로 호출한다. 설계 문서는 [`docs/README.
 engine/            승준 KAN-11 계산 엔진 (LSJ v0.3/src/core 사본 + data/ 스냅샷). 승준만 수정. engine/README.md
 explainer/
   calculate.py     POST /calculate 어댑터 — 기동 시 Dataset 1회 로드, ValidationError → 422
-  schema.py        입력(KAN-9 §5) · 출력(KAN-9 §7 + evidence) 스키마. Pydantic
-  prompt.py        시스템 프롬프트 (docs/KAN-12와 글자 단위 일치)
-  guardrail.py     검증기 C2~C18 (C14 자동 부분 · C16~C18은 9/4 승준 변경점). 이 프로젝트의 핵심
-  client.py        Gemini Flash 호출 → 가드레일 → 실패 시 1회 재생성
-  api.py           FastAPI. POST /calculate · POST /rag/answer · GET /health
-  public_api.py    공개 API(브라우저↔Spring) JSON 계약 — KAN-4. 실행 안 함, Spring DTO의 원본
+  schema.py        입력(KAN-9 §5) · 출력(KAN-9 §7 + evidence) 스키마 + AskAnswer(질문답변 스트레치). Pydantic
+  prompt.py        시스템 프롬프트 (docs/KAN-12와 글자 단위 일치) + 질문답변용 build_ask_message
+  guardrail.py     검증기 C2~C18 (C14 자동 부분 · C16~C18은 9/4 승준 변경점) + validate_ask(질문답변, 구조검사 C6·C8·C10·C11 제외). 이 프로젝트의 핵심
+  client.py        Gemini Flash 호출 → 가드레일 → 실패 시 1회 재생성. explain()·ask() 둘 다 같은 재시도 루프
+  api.py           FastAPI. POST /calculate · POST /rag/answer · POST /rag/ask · GET /health
+  public_api.py    공개 API(브라우저↔Spring) JSON 계약 — KAN-4 + KAN-24(질문답변 스트레치). 실행 안 함, Spring DTO의 원본
   knowledge/       chunking · embedding · store(pgvector) · retrieve(결과 필드 → 개념 청크)
 knowledge/         RAG 원재료 — 개념 문서 8개. 코드가 읽는 데이터 (KAN-15)
 fixtures/          케이스 1~5 입력(승준 골든 P0·실험 X01f·X14c·X16d·X03a 실측) + t/ 검출용 6개 + inputs/(승준 페르소나) + 검수된 응답 4(케이스 1·3·4·5). 목록 fixtures/FIXTURES.md
-tests/             guardrail 31 · knowledge 45 · retrieve 18 · explain 10 · public_api 47 · calculate 15 — 전부 LLM·DB 호출 없음
+tests/             guardrail 31 · knowledge 45 · retrieve 18 · explain 10 · public_api 53 · calculate 15 · ask 9 = 181 — 전부 LLM·DB 호출 없음
 scripts/           ingest.py(적재) · search.py(검색 평가) · export_openapi.py(OpenAPI 생성) · smoke.py(통합 스모크, 9/5 합숙용)
 db/                V1__knowledge.sql — knowledge_* 스키마. backend Flyway로 이관 예정
 docs/              설계 문서 6개 (KAN-04·12·13·15·16·17) + 인덱스 + openapi/(공개·내부 OpenAPI, 예시 JSON 13개)
@@ -37,7 +37,7 @@ python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 **키·DB 없이 — 전부 돈다** (검증기·청킹·검색 파일 폴백·가짜 Gemini)
 
 ```bash
-for t in guardrail knowledge retrieve explain public_api calculate; do ./.venv/bin/python tests/test_$t.py; done
+for t in guardrail knowledge retrieve explain public_api calculate ask; do ./.venv/bin/python tests/test_$t.py; done
 ./.venv/bin/python run.py fixtures/case1_small_gap.json --check fixtures/case1_response_good.json
 ./.venv/bin/python scripts/ingest.py --dry-run
 ./.venv/bin/python scripts/export_openapi.py          # docs/openapi/*.json 재생성 (계약 바꿨을 때)
@@ -81,25 +81,26 @@ python3 scripts/smoke.py http://localhost:8000 --llm           # /rag/answer 실
 |---|---|
 | `POST /calculate` | Kan-9 §2 입력 dict → §5 결과 JSON. 승준 엔진 `engine/` (9/4) |
 | `POST /rag/answer` | KAN-11 결과 JSON (+ `focus`, `goal_amount`) → AI 설명 |
+| `POST /rag/ask` | 결과 JSON + `question`(자유 텍스트) → 단발 답변. KAN-24(질문답변 스트레치, 9/5 도윤 구두 확인). 이력 없음 |
 | `GET /health` | healthcheck. 모델명 · 키 유무 · retriever 종류 · 엔진 `data_hash` |
 
 **응답 규약** — 처리가 끝나면 **항상 200**, 설명이 나왔는지는 `status`로 구분. Spring이 예외 분기 없이 결과 화면을 그릴 수 있게.
 
 | `status` | HTTP | 뜻 |
 |---|---|---|
-| `OK` | 200 | 생성·검증 통과. `explanation` + `retrieved_refs` |
-| `EXPLANATION_REJECTED` | 200 | 가드레일 2회 실패. **결과 화면 그대로**, 설명 영역만 `message` |
-| `EXPLANATION_UNAVAILABLE` | 200 | 모델 호출 실패·키 없음. 재시도 |
-| `INVALID_INPUT` | 422 | 본문이 KAN-9 §5 모양이 아님. `violations`에 필드 |
+| `OK` | 200 | 생성·검증 통과. `explanation`(또는 `answer`) + `retrieved_refs` |
+| `EXPLANATION_REJECTED` / `ANSWER_REJECTED` | 200 | 가드레일 2회 실패. **결과 화면 그대로**, 설명·답변 영역만 `message` |
+| `EXPLANATION_UNAVAILABLE` / `ANSWER_UNAVAILABLE` | 200 | 모델 호출 실패·키 없음. 재시도 |
+| `INVALID_INPUT` | 422 | 본문이 규격과 안 맞음(`/rag/ask`는 `question` 누락 포함). `violations`에 필드 |
 
-요청·응답 예시 JSON과 상세 규약은 [`docs/KAN-17-내부HTTP계약.md`](docs/KAN-17-내부HTTP계약.md). OpenAPI는 [`docs/openapi/ai-service.openapi.json`](docs/openapi/ai-service.openapi.json).
+요청·응답 예시 JSON과 상세 규약은 [`docs/KAN-17-내부HTTP계약.md`](docs/KAN-17-내부HTTP계약.md)(`/rag/ask`는 KAN-24라 이 문서엔 미반영 — 아래 「질문답변 스트레치」 절 참고, `tests/test_ask.py`가 계약 검증). OpenAPI는 [`docs/openapi/ai-service.openapi.json`](docs/openapi/ai-service.openapi.json).
 
 ## 공개 API JSON (KAN-4 · 브라우저 ↔ Spring)
 
 ai-service가 서빙하지 않는다. **Spring DTO의 원본**을 여기서 정하고(`explainer/public_api.py`) OpenAPI로 뽑아 도윤에게 준다 — 9/3 분담. 경로·상태 코드는 노션 §4(도윤), JSON 본문은 이 레포. `calculation`·`explanation`은 `schema.py` 모델 재사용이라 내부 계약과 어긋날 수 없다.
 
-- [`docs/openapi/public-api.openapi.json`](docs/openapi/public-api.openapi.json) — 5 엔드포인트 · 35 스키마
-- [`docs/openapi/examples/`](docs/openapi/examples/) — 요청·응답·오류 예시 13개. `tests/test_public_api.py`가 전부 계약과 대조
+- [`docs/openapi/public-api.openapi.json`](docs/openapi/public-api.openapi.json) — 6 엔드포인트 · 39 스키마 (`POST /plans/{public_id}/questions` = KAN-24 질문답변 스트레치)
+- [`docs/openapi/examples/`](docs/openapi/examples/) — 요청·응답·오류 예시 17개. `tests/test_public_api.py`가 전부 계약과 대조
 - 결정 4가지(오류 봉투·explanation 필드·`focus/goal_amount` 조립·samples 목록형)는 [`docs/KAN-04`](docs/KAN-04-API-명세.md) §3
 
 ## Docker
@@ -113,7 +114,7 @@ docker build -t ai-service . && docker run -p 8000:8000 -e GEMINI_API_KEY=... ai
 ## 가드레일이 하는 일
 
 LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 재생성, 두 번째도 실패하면 반려.
-번호는 [`docs/KAN-12`](docs/KAN-12-AI-응답규격.md) 산출물 ④와 같다.
+번호는 [`docs/KAN-12`](docs/KAN-12-AI-응답규격.md) 산출물 ④와 같다. `validate_ask()`(질문답변 스트레치)는 C2~C5·C12~C14·C16~C18을 그대로 재사용하고, Explanation 구조 전용인 C6·C8·C10·C11만 뺀다.
 
 | 검사 | 내용 |
 |---|---|
@@ -135,10 +136,21 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 **파생값은 허용하지 않는다** — 납입액 조정은 `gap.extra_monthly_required` 증감분으로만. 한글 수사("세 주기")는 못 잡는다.
 실호출이 붙으면 실제 응답으로 오탐·미탐을 재조정할 것.
 
+## 질문답변 스트레치 (`POST /rag/ask` · `/plans/{public_id}/questions`) — KAN-24
+
+9/5 도윤 구두 확인("간단한 채팅이라도 있으면 좋겠다") 후 구현, **KAN-24로 사후 등록**(회의·PRD·기존 티켓엔 없던 범위). `feature/rag-ask` 브랜치(ai-service·frontend 둘 다), `develop` 머지는 별도 지시 대기.
+
+- ai-service 쪽은 **세션 개념과 무관하게 stateless** — 매 질문이 독립 호출, `agent_message`류 저장도 없음(9/7 스코프 밖)
+- `explain()`/`validate()`와 최대한 재사용: SYSTEM 프롬프트·숫자환각(C4)·evidence(C2·C3)·금지표현(C5) 등은 공유, Explanation 구조 전용 검사(C6·C8·C10·C11)만 제외
+- 검증: `tests/test_ask.py` 9건 — 전부 가짜 Gemini(FakeGemini)로 네트워크 없이. **실제 Gemini 호출로는 아직 안 돌려봄**
+- **프론트는 단발 입력창이 아니라 채팅 목록(사이드바)** — `ChatPanel.vue`, 여러 세션을 만들고 전환. 세션은 `plan.public_id` 스코프(로그인 없음), 지금은 프론트 `localStorage`(`src/chat/store.ts`)로만 저장. 목 데이터로 세션 생성·전환·새로고침 유지까지 브라우저 확인 완료. Spring `/plans/{id}/questions` 실구현 없음(백엔드 레포가 아직 빈 상태)이라 실서버 연동 미검증 — 상세는 `frontend/README.md`
+- PR 아직 안 만듦(GitHub이 자동으로 링크 제안하지만 미생성)
+
 ## 미검증 · 다음
 
-- ~~실제 LLM 호출~~ — 9/3 검증 완료(3/3 통과). 키는 **무료 등급 유지**(9/4 팀 결정, 하루 20회). 남은 것: 케이스 2 응답 픽스처(Gemini 503으로 미생성) · 통과율 표본
+- ~~실제 LLM 호출~~ — 9/3 검증 완료(3/3 통과, `/rag/answer`만). 키는 **무료 등급 유지**(9/4 팀 결정, 하루 20회). 남은 것: 케이스 2 응답 픽스처(Gemini 503으로 미생성) · 통과율 표본 · **`/rag/ask` 실호출 검증(위 절 참고)**
 - ~~DB 적재·검색 실행~~ — 9/4 Docker 검증 완료(적재 28청크·검색 5/5). 절차는 docs/KAN-16 「실행」
 - docker compose 연동 (도윤 compose 대기)
 - ~~KAN-13 픽스처 2~5~~ — 9/4 입력 4 + 응답 3 작성(승준 실험 payload). 케이스 2 응답만 남음
 - 레포 구조 — 노션 인프라 문서 `contracts/simulator/rag/app` vs 현재 `explainer/` + `engine/`(9/4 승준 엔진 수용). 도윤 확인 후
+- 질문답변 스트레치(KAN-24) — 위 절 참고. Spring 구현·실호출·develop 머지 전부 대기

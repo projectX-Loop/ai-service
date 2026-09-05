@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from .schema import Explanation, SimulationInput
+from .schema import AskAnswer, Explanation, SimulationInput
 
 # ─────────────────────────────────────────── 결과 타입
 
@@ -404,5 +404,117 @@ def validate(exp: Explanation, source: SimulationInput | dict,
     normalized_refs = {r[len("chunk:"):] if r.startswith("chunk:") else r for r in exp.retrieved_refs}
     if normalized_refs != chunk_refs:
         v.append(Violation("C3", "WARN", f"retrieved_refs {sorted(exp.retrieved_refs)} != evidence 청크 합집합 {sorted(chunk_refs)}"))
+
+    return Report(v)
+
+
+# ─────────────────────────────────────────── 질문 답변 (KAN-24)
+
+
+def _claims_ask(ans: AskAnswer) -> list[tuple[str, str, list[str]]]:
+    """Explanation._claims()의 답변 전용 버전 — 필드가 answer 하나뿐이다."""
+    return [("answer", ans.answer.text, ans.answer.evidence)]
+
+
+def validate_ask(ans: AskAnswer, source: SimulationInput | dict, chunk_exists=None) -> Report:
+    """단발 질문 답변 검증. validate()에서 Explanation 고유 구조 검사(C6·C8·C10·C11)만 뺐다.
+
+    나머지(C2·C3·C4·C5·C12·C13·C14·C16·C17·C18)는 텍스트·evidence만 보는 검사라
+    답변이 summary/risks/next_actions 같은 필드 없이 문장 하나뿐이어도 그대로 적용된다.
+    """
+    data = source.model_dump(mode="json") if isinstance(source, SimulationInput) else source
+    candidates = collect_input_numbers(data)
+    v: list[Violation] = []
+    claims = _claims_ask(ans)
+
+    # C2 — evidence가 있는가
+    for where, text, ev in claims:
+        if not ev:
+            v.append(Violation("C2", "ERROR", f"{where}: evidence가 비어 있음"))
+
+    # C3 — evidence가 실제로 존재하는가
+    chunk_refs: set[str] = set()
+    for where, _text, ev in claims:
+        for e in ev:
+            if e.startswith("chunk:"):
+                ref = e[len("chunk:"):]
+                chunk_refs.add(ref)
+                if "#" not in ref:
+                    v.append(Violation("C3", "ERROR", f"{where}: 청크 참조 형식 오류 '{e}' (source_id#idx)"))
+                elif chunk_exists is not None and not chunk_exists(ref):
+                    v.append(Violation("C3", "ERROR", f"{where}: 존재하지 않는 청크 {e}"))
+                continue
+            try:
+                resolve_pointer(data, e)
+            except (KeyError, IndexError, ValueError) as err:
+                v.append(Violation("C3", "ERROR", f"{where}: 존재하지 않는 경로 {err}"))
+
+    # C4 — 숫자 환각
+    for where, text, ev in claims:
+        for raw, value, has_unit in extract_numbers(text):
+            if matches_any(value, candidates):
+                continue
+            is_small_ordinal = (not has_unit) and value.is_integer() and 1 <= value <= 12
+            sev = "WARN" if is_small_ordinal else "ERROR"
+            v.append(Violation("C4", sev, f"{where}: 입력에 없는 수치 '{raw}' (해석값 {value:,.4g})"))
+
+    # C13 — 청크만 근거인 문장에 수치 금지
+    for where, text, ev in claims:
+        if any(e.startswith("chunk:") for e in ev) and not any(not e.startswith("chunk:") for e in ev):
+            nums = [raw for raw, _v, _u in extract_numbers(text)]
+            if nums:
+                v.append(Violation("C13", "ERROR", f"{where}: 청크만 근거인 문장에 수치 {nums} — 수치는 계산 결과에서만"))
+
+    # C5 — 금지 표현
+    for where, text, _ev in claims:
+        for reason, sentence in check_forbidden(text):
+            v.append(Violation("C5", "ERROR", f"{where}: {reason} — \"{sentence}\""))
+
+    # C12 — 조건절 없는 미래 단정
+    for where, text, _ev in claims:
+        for s in check_future_claims(text):
+            v.append(Violation("C12", "ERROR", f"{where}: 조건절 없는 미래 단정 (규칙 5) — \"{s}\""))
+
+    # C14 — 주기 고정 문구·항상·MDD 억제·퇴화 우열
+    periods = data.get("per_period", {}) or {}
+    fvs = {(p.get("gap", {}) or {}).get("fv_total") for p in periods.values()}
+    costs = {p.get("cum_cost") for p in periods.values()}
+    degenerate = len(periods) >= 2 and len(fvs) == 1 and len(costs) == 1
+    for where, text, _ev in claims:
+        for reason, s in check_period_claims(text, degenerate):
+            v.append(Violation("C14", "ERROR", f"{where}: {reason} — \"{s}\""))
+
+    # C16 — 연장 서술이 gap.extension_status와 어긋남
+    statuses = {k: (p.get("gap", {}) or {}).get("extension_status") for k, p in periods.items()}
+    focus_key = data.get("focus")
+    check_keys = [focus_key] if focus_key in statuses else list(statuses)
+    non_ok = {k: statuses[k] for k in check_keys if statuses.get(k) not in (None, "OK")}
+    if non_ok:
+        for where, text, _ev in claims:
+            for sentence in SENTENCE_SPLIT.split(text):
+                s = sentence.strip()
+                if EXTENSION_CLAIM_RE.search(s) and not re.search(r"범위|넘|초과|확인할 수 없", s):
+                    v.append(Violation("C16", "ERROR",
+                        f"{where}: extension_status={non_ok} 인데 연장 개월을 도달 안내로 서술 — \"{s}\""))
+
+    # C17 — 자산군 일반화
+    names = [a.get("display_name", "") for a in data.get("meta", {}).get("assets_used", []) if a.get("display_name")]
+    for where, text, _ev in claims:
+        for sentence in SENTENCE_SPLIT.split(text):
+            s = sentence.strip()
+            if GENERALIZE_RE.search(s) and not any(n and n in s for n in names):
+                v.append(Violation("C17", "WARN", f"{where}: 자산군 일반화 — display_name으로 지칭할 것 — \"{s}\""))
+
+    # C18 — vol_annual_pct 단독 인용
+    for where, _text, ev in claims:
+        ptrs = [e for e in ev if not e.startswith("chunk:")]
+        if any(e.endswith("/vol_annual_pct") for e in ptrs) and not any(
+                e.endswith("/mdd_pct") or e.endswith("/worst_month_pct") for e in ptrs):
+            v.append(Violation("C18", "WARN", f"{where}: vol_annual_pct 단독 인용 — mdd_pct·worst_month_pct와 함께"))
+
+    # retrieved_refs — evidence 청크 합집합과 일치하는가
+    normalized_refs = {r[len("chunk:"):] if r.startswith("chunk:") else r for r in ans.retrieved_refs}
+    if normalized_refs != chunk_refs:
+        v.append(Violation("C3", "WARN", f"retrieved_refs {sorted(ans.retrieved_refs)} != evidence 청크 합집합 {sorted(chunk_refs)}"))
 
     return Report(v)

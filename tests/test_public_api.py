@@ -43,6 +43,10 @@ MODEL_OF = {
     "explanation.response.ok.json": pub.ExplanationResponse,
     "explanation.response.rejected.json": pub.ExplanationResponse,
     "explanation.response.unavailable.json": pub.ExplanationResponse,
+    "questions.request.json": pub.QuestionRequest,
+    "questions.response.ok.json": pub.QuestionResponse,
+    "questions.response.rejected.json": pub.QuestionResponse,
+    "questions.response.unavailable.json": pub.QuestionResponse,
     "universe.response.json": pub.UniverseResponse,
     "samples.response.json": pub.SamplesResponse,
     "error.validation.json": pub.ErrorEnvelope,
@@ -51,6 +55,7 @@ MODEL_OF = {
     "error.calculation_failed.json": pub.ErrorEnvelope,
     "error.explanation_unavailable.json": pub.ErrorEnvelope,
     "error.snapshot_mismatch.json": pub.ErrorEnvelope,
+    "error.answer_unavailable.json": pub.ErrorEnvelope,
 }
 on_disk = sorted(p.name for p in EX.glob("*.json"))
 check("예시 파일 목록이 테스트 표와 같다", on_disk == sorted(MODEL_OF), f"disk={on_disk}")
@@ -128,7 +133,7 @@ check("CALCULATION_FAILED 는 public_id 를 동봉한다", load("error.calculati
 r = subprocess.run([sys.executable, str(ROOT / "scripts/export_openapi.py"), "--check"], capture_output=True, text=True)
 check("docs/openapi/*.json 이 export_openapi.py 출력과 같다", r.returncode == 0, (r.stdout + r.stderr).strip()[-300:])
 spec = json.loads((ROOT / "docs/openapi/public-api.openapi.json").read_text(encoding="utf-8"))
-check("공개 API 경로 5개", set(spec["paths"]) == {"/plans", "/plans/{public_id}", "/plans/{public_id}/explanation", "/universe", "/samples"})
+check("공개 API 경로 6개", set(spec["paths"]) == {"/plans", "/plans/{public_id}", "/plans/{public_id}/explanation", "/plans/{public_id}/questions", "/universe", "/samples"})
 
 
 def refs(o):

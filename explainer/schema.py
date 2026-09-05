@@ -214,3 +214,20 @@ class Explanation(BaseModel):
     retrieved_refs: list[str] = Field(
         description="인용한 지식 청크 참조의 합집합. evidence의 chunk: 접두어를 뺀 <source_id>#<idx> 형식 (예: concept/max_drawdown#0). RAG 미사용 시 빈 배열"
     )
+
+
+class AskAnswer(BaseModel):
+    """단발 질문 답변 (KAN-24 — 9/5 도윤 구두 확인).
+
+    Explanation과 같은 evidence 원칙(숫자는 JSON Pointer·개념은 chunk:)을 쓰되
+    필드 구조는 없다 — 자유 질문에 대한 답 하나뿐이라 per_period_pros_cons 같은
+    고정 절이 없다. 이력 없음(단발), 재시도 루프·가드레일은 client.py/guardrail.py에서
+    Explanation 경로와 최대한 공유한다.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    answer: Claim = Field(description="질문에 대한 답. 계산 결과 JSON과 지식 청크만 근거로 사용")
+    retrieved_refs: list[str] = Field(
+        description="인용한 지식 청크 참조의 합집합. Explanation.retrieved_refs와 같은 규칙"
+    )

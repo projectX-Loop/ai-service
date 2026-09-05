@@ -19,9 +19,9 @@ from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import prompt
-from .guardrail import Report, validate
+from .guardrail import Report, validate, validate_ask
 from .knowledge.retrieve import Retriever
-from .schema import Explanation, Period, ProsCons, SimulationInput
+from .schema import AskAnswer, Explanation, Period, ProsCons, SimulationInput
 
 # 모델 ID는 바뀌므로 환경변수로 덮을 수 있게 둔다.
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
@@ -193,6 +193,101 @@ def explain(source: SimulationInput, *, client: genai.Client | None = None,
                         text=prompt.build_retry_message([str(v) for v in report.errors])
                     )],
                 )
+            )
+
+    raise ExplanationRejected(last_report)
+
+
+# ─────────────────────────────────────────── 질문 답변 (KAN-24, 9/5 도윤 구두 확인)
+
+
+@dataclass
+class AskOutcome:
+    answer: AskAnswer
+    report: Report
+    attempts: int
+    chunk_refs: list[str]
+    retry_reasons: list[str] = field(default_factory=list)
+
+
+def _ask_response_schema() -> dict:
+    schema = _strip_additional_properties(AskAnswer.model_json_schema())
+    _constrain_evidence(schema)
+    return schema
+
+
+def _ask_config() -> types.GenerateContentConfig:
+    return types.GenerateContentConfig(
+        system_instruction=prompt.SYSTEM,       # explain()과 같은 SYSTEM — 수치 인용·금지 표현 규칙 공유
+        response_mime_type="application/json",
+        response_schema=_ask_response_schema(),
+        temperature=0,
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+    )
+
+
+def _parse_ask(response) -> AskAnswer:
+    parsed = getattr(response, "parsed", None)
+    if isinstance(parsed, AskAnswer):
+        return parsed
+    if isinstance(parsed, BaseModel):
+        return AskAnswer.model_validate(parsed.model_dump(mode="json"))
+    if isinstance(parsed, dict):
+        return AskAnswer.model_validate(parsed)
+
+    text = getattr(response, "text", None)
+    if not text:
+        raise ExplanationUnavailable("모델이 빈 응답을 반환했습니다 (안전 필터 가능성)")
+    return AskAnswer.model_validate(json.loads(text))
+
+
+def ask(source: SimulationInput, question: str, *, client: genai.Client | None = None,
+        retriever: Retriever | None = None) -> AskOutcome:
+    """단발 질문 답변. explain()과 같은 재시도·검증 루프를 쓰고 스키마·프롬프트·가드레일만 다르다.
+
+    이력 없음 — 매 호출이 독립. 검색은 explain()과 동일하게 결과 필드 기반(질문 텍스트 무관, 결정론).
+    """
+    client = client or genai.Client(api_key=_api_key(), http_options=_http_options())
+
+    chunks: list[dict] = []
+    chunk_exists = None
+    if retriever is not None:
+        try:
+            found = retriever.retrieve(source)
+            chunks = [{"ref": c.ref, "title": c.title, "location": c.location, "content": c.content}
+                      for c in found]
+            chunk_exists = retriever.exists
+        except Exception:
+            chunks, chunk_exists = [], None
+
+    contents: list[types.Content] = [
+        types.Content(role="user", parts=[types.Part(text=prompt.build_ask_message(source, chunks, question))])
+    ]
+
+    last_report: Report | None = None
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            response = client.models.generate_content(
+                model=MODEL, contents=contents, config=_ask_config()
+            )
+        except genai_errors.APIError as e:
+            raise ExplanationUnavailable(str(e)) from e
+
+        answer = _parse_ask(response)
+        report = validate_ask(answer, source, chunk_exists=chunk_exists)
+        if report.passed:
+            return AskOutcome(answer, report, attempt, [c["ref"] for c in chunks],
+                              retry_reasons=[str(v) for v in last_report.errors] if last_report else [])
+
+        last_report = report
+        if attempt < MAX_ATTEMPTS:
+            contents.append(
+                types.Content(role="model", parts=[types.Part(text=answer.model_dump_json())])
+            )
+            contents.append(
+                types.Content(role="user", parts=[types.Part(
+                    text=prompt.build_retry_message([str(v) for v in report.errors])
+                )])
             )
 
     raise ExplanationRejected(last_report)

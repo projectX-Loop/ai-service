@@ -21,7 +21,7 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .schema import Derived, Explanation, Meta, Period, PeriodResult
+from .schema import Claim, Derived, Explanation, Meta, Period, PeriodResult
 
 # ─────────────────────────────────────────── 입력 (Kan-9 §2, v0.2 8필드)
 #
@@ -175,6 +175,35 @@ class ExplanationResponse(BaseModel):
     message: str | None = Field(default=None, description="status≠OK 일 때 설명 영역에 보여줄 문구")
 
 
+# ─────────────────────────────────────────── 질문 답변 (KAN-24 — 9/5 도윤 구두 확인)
+
+
+class QuestionRequest(Strict):
+    """POST /plans/{public_id}/questions 요청 본문. 이력 없음 — 매 호출이 독립(대화 저장 안 함)."""
+
+    question: str = Field(min_length=1, max_length=500, description="자유 질문 텍스트")
+
+
+class QuestionStatus(str, Enum):
+    OK = "OK"
+    ANSWER_REJECTED = "ANSWER_REJECTED"           # 가드레일 2회 실패. message만
+    ANSWER_UNAVAILABLE = "ANSWER_UNAVAILABLE"     # 모델 호출 실패. 재시도 버튼
+
+
+class QuestionResponse(BaseModel):
+    """POST /plans/{public_id}/questions 200 본문. ExplanationResponse와 같은 모양(status로 분기).
+
+    ai-service POST /rag/ask 의 answer(schema.Claim) 그대로 노출. attempts·retrieved_refs·violations는
+    디버깅·저장용(agent_message, KAN-24)이라 브라우저에 주지 않는다 — ExplanationResponse와 동일한 원칙.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: QuestionStatus
+    answer: Claim | None = Field(description="status=OK 일 때만 non-null")
+    message: str | None = Field(default=None, description="status≠OK 일 때 답변 영역에 보여줄 문구")
+
+
 # ─────────────────────────────────────────── 유니버스 · 샘플
 
 
@@ -243,7 +272,7 @@ class ErrorEnvelope(BaseModel):
 
     code: str = Field(
         description="HTTP 층: VALIDATION_ERROR · UNSUPPORTED_FIELD · PLAN_NOT_FOUND · CALCULATION_FAILED · "
-        "EXPLANATION_UNAVAILABLE · SNAPSHOT_MISMATCH. 데이터 의존 오류는 엔진 코드 그대로: INSUFFICIENT_HISTORY · ASSET_NOT_IN_CATALOG"
+        "EXPLANATION_UNAVAILABLE · ANSWER_UNAVAILABLE · SNAPSHOT_MISMATCH. 데이터 의존 오류는 엔진 코드 그대로: INSUFFICIENT_HISTORY · ASSET_NOT_IN_CATALOG"
     )
     message: str = Field(description="사용자에게 보여도 되는 문구")
     retryable: bool = Field(description="true = 재시도 버튼, false = 입력 수정 요구")
@@ -262,5 +291,6 @@ HTTP_ERROR_CODES = {
     "SNAPSHOT_MISMATCH": (500, False),
     "CALCULATION_FAILED": (502, True),
     "EXPLANATION_UNAVAILABLE": (502, True),
+    "ANSWER_UNAVAILABLE": (502, True),
 }
 """코드 → (HTTP, retryable). 노션 §4 오류 봉투 절의 표. 예시 JSON 과 OpenAPI 가 이 표를 따른다."""

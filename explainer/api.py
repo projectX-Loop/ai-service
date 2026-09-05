@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field, ValidationError
 from . import calculate as calc
 from . import client as llm
 from .knowledge.retrieve import default_retriever
-from .schema import Explanation, SimulationInput
+from .schema import AskAnswer, Explanation, SimulationInput
 
 log = logging.getLogger("ai-service")
 
@@ -126,6 +126,88 @@ def answer(payload: dict) -> JSONResponse:
         content={
             "status": "OK",
             "explanation": outcome.explanation.model_dump(mode="json"),
+            "attempts": outcome.attempts,
+            "retrieved_refs": outcome.chunk_refs,
+            "violations": [str(v) for v in outcome.report.warnings],
+            "message": None,
+        },
+    )
+
+
+class AskResponse(BaseModel):
+    """KAN-24(질문답변 스트레치, 9/5 도윤 구두 확인). AnswerResponse와 같은 상태 모양."""
+
+    status: str = Field(description="OK | ANSWER_REJECTED | ANSWER_UNAVAILABLE | INVALID_INPUT")
+    answer: AskAnswer | None = None
+    attempts: int | None = None
+    retrieved_refs: list[str] = Field(default_factory=list)
+    violations: list[str] = Field(default_factory=list)
+    message: str | None = None
+
+
+@app.post("/rag/ask", response_model=AskResponse, response_model_exclude_none=False)
+def rag_ask(payload: dict) -> JSONResponse:
+    """단발 질문. body = /rag/answer와 같은 계산 결과 JSON + "question" 필드 하나.
+
+    이력 없음 — 매 호출이 독립. 채팅 UI가 있어도 서버는 대화를 기억하지 않는다.
+    """
+    question = payload.get("question")
+    if not isinstance(question, str) or not question.strip():
+        return JSONResponse(
+            status_code=422,
+            content={
+                "status": "INVALID_INPUT",
+                "answer": None,
+                "violations": ["question: 비어 있거나 문자열이 아님"],
+                "message": "질문을 입력해 주세요.",
+            },
+        )
+
+    result_payload = {k: v for k, v in payload.items() if k != "question"}
+    try:
+        source = SimulationInput.model_validate(result_payload)
+    except ValidationError as e:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "status": "INVALID_INPUT",
+                "answer": None,
+                "violations": [f"{'.'.join(str(x) for x in d['loc'])}: {d['msg']}" for d in e.errors()],
+                "message": "시뮬레이션 결과 JSON이 AI 설명 입력 규격과 맞지 않습니다.",
+            },
+        )
+
+    try:
+        outcome = llm.ask(source, question, retriever=_retriever)
+    except llm.ExplanationRejected as e:
+        log.warning("ask guardrail rejected: %s", e)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ANSWER_REJECTED",
+                "answer": None,
+                "attempts": llm.MAX_ATTEMPTS,
+                "violations": [str(v) for v in e.report.errors],
+                "message": "답변을 생성하지 못했습니다. 다시 질문해 주세요.",
+            },
+        )
+    except llm.ExplanationUnavailable as e:
+        log.error("ask model unavailable: %s", e)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ANSWER_UNAVAILABLE",
+                "answer": None,
+                "violations": [],
+                "message": "지금은 답변할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+            },
+        )
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "OK",
+            "answer": outcome.answer.model_dump(mode="json"),
             "attempts": outcome.attempts,
             "retrieved_refs": outcome.chunk_refs,
             "violations": [str(v) for v in outcome.report.warnings],

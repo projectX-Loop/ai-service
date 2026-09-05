@@ -161,6 +161,29 @@ def build_user_message(source: SimulationInput, chunks: list[dict] | None = None
     return msg
 
 
+def build_ask_message(source: SimulationInput, chunks: list[dict] | None, question: str) -> str:
+    """단발 질문용 (KAN-24). build_user_message와 같은 페이로드 위에 질문만 얹는다.
+
+    SYSTEM의 규칙(수치 인용·금지 표현·어조)은 설명·질문답변에 공통이라 그대로 쓴다.
+    여기서는 "무엇에 답해야 하는지"만 바꾼다.
+    """
+    payload = json.dumps(prompt_payload(source), ensure_ascii=False, indent=2)
+    msg = (
+        "아래는 리밸런싱 시뮬레이션 결과입니다. 이 JSON에 있는 값과, 있다면 아래 지식 청크만 근거로 "
+        "사용자 질문에 답하세요. 근거를 댈 수 없으면 \"제공된 분석 결과로는 알 수 없습니다\"라고 답하세요.\n\n"
+        f"```json\n{payload}\n```"
+    )
+    if chunks:
+        lines = "\n\n".join(f"[chunk:{c['ref']}] ({c.get('title','')} › {c.get('location','')})\n{c['content']}"
+                            for c in chunks)
+        msg += (
+            "\n\n아래는 개념 설명용 지식 청크입니다. 용어를 풀어 쓸 때만 근거로 삼고, "
+            "evidence에 chunk:<ref>로 기록하세요. 청크의 숫자는 인용하지 마세요.\n\n" + lines
+        )
+    msg += f"\n\n[사용자 질문]\n{question}"
+    return msg
+
+
 def build_retry_message(errors: list[str]) -> str:
     """가드레일 위반 시 재생성 요청."""
     joined = "\n".join(f"- {e}" for e in errors)
