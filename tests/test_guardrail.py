@@ -169,7 +169,7 @@ def main() -> int:
                      ["/meta/window/start", "/meta/window/end", "/goal_amount", "/cashflow/profile"]), False)
 
     # ── 응답 픽스처 전수: caseN_response_good ↔ caseN 입력 (9/4 실호출 생성분 포함)
-    pairs = {"case1_small_gap": "case1", "case3_high_cost": "case3", "case4_high_drawdown": "case4", "case5_no_difference": "case5"}
+    pairs = {"case1_small_gap": "case1", "case2_large_gap": "case2", "case3_high_cost": "case3", "case4_high_drawdown": "case4", "case5_no_difference": "case5"}
     for inp, tag in pairs.items():
         rp = ROOT / f"fixtures/{tag}_response_good.json"
         if not rp.exists():

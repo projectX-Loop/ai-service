@@ -5,7 +5,11 @@
 `t/`는 KAN-13 검출 케이스(T1~T21) 전용 payload. 응답 픽스처(`*_response_good.json`)는 실호출로 만들고 사람이 검수한 것만 둔다.
 `inputs/`는 Kan-9 §2 입력(승준 페르소나) — `POST /calculate` 요청 예시·테스트용.
 
-**응답 픽스처 (9/4 실호출, gemini-3.6-flash, 가드레일 오류 0·경고 0)**: `case3_response_good.json`(1회 통과) · `case4_response_good.json`(1회) · `case5_response_good.json`(**1회 반려 → 재생성 통과** — 재시도 경로 첫 실측). `case1_response_good.json`은 9/2 수기 작성본 유지. case2는 Gemini 503/504로 미생성.
+**응답 픽스처 (9/4 실호출, gemini-3.6-flash, 가드레일 오류 0·경고 0)**: `case3_response_good.json`(1회 통과) · `case4_response_good.json`(1회) · `case5_response_good.json`(**1회 반려 → 재생성 통과** — 재시도 경로 첫 실측). `case1_response_good.json`은 9/2 수기 작성본 유지.
+
+**case2_response_good.json (9/5 밤, 유료 전환 후 실호출)**: 9/4엔 Gemini 503/504로 미생성 상태였음 — 유료 전환 후 재시도해 생성. 1회 시도 통과(오류 0).
+
+**⚠ 통과율 표본 (9/5 밤, 5케이스 × 2회씩 = 총 10회 실호출)**: 유료 전환 후 처음으로 여러 케이스를 반복 호출해봄. case1(2회 시도 후 통과) · **case2(3회 실호출 중 1회 반려, 나머지 2회 통과 — 유일하게 실패 관측)** · case3·4(1회 시도 통과) · case5(1회 시도, 경고 1). **case2가 가장 불안정** — 목표 간극이 크고 `BEYOND_INPUT_LIMIT` 분기·큰 금액(15억)이 섞인 복잡한 케이스라 그런 것으로 추정, 표본이 작아 확정은 아님. 심사 데모에서 이 유형의 입력이 나오면 재시도 1회로 통과할 가능성이 높지만(가드레일 재시도 루프가 이미 처리) 완전한 보장은 아님 — 참고용 기록.
 
 | 파일 | 실험 | 취지 | 비고 |
 |---|---|---|---|

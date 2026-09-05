@@ -20,7 +20,7 @@ explainer/
   knowledge/       chunking · embedding · store(pgvector) · retrieve(결과 필드 → 개념 청크)
 knowledge/         RAG 원재료 — 개념 문서 8개. 코드가 읽는 데이터 (KAN-15)
 fixtures/          케이스 1~5 입력(승준 골든 P0·실험 X01f·X14c·X16d·X03a 실측) + t/ 검출용 6개 + inputs/(승준 페르소나) + 검수된 응답 4(케이스 1·3·4·5). 목록 fixtures/FIXTURES.md
-tests/             guardrail 31 · knowledge 45 · retrieve 18 · explain 10 · public_api 53 · calculate 15 · ask 13 = 185 — 전부 LLM·DB 호출 없음
+tests/             guardrail 32 · knowledge 45 · retrieve 18 · explain 10 · public_api 53 · calculate 15 · ask 13 = 186 — 전부 LLM·DB 호출 없음
 scripts/           ingest.py(적재) · search.py(검색 평가) · export_openapi.py(OpenAPI 생성) · smoke.py(통합 스모크, 9/5 합숙용)
 db/                V1__knowledge.sql — knowledge_* 스키마. backend Flyway로 이관 예정
 docs/              설계 문서 6개 (KAN-04·12·13·15·16·17) + 인덱스 + openapi/(공개·내부 OpenAPI, 예시 JSON 13개)
@@ -152,7 +152,7 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 
 ## 미검증 · 다음
 
-- ~~실제 LLM 호출~~ — 9/3 `/rag/answer` 검증 완료(3/3 통과), 9/5 `/rag/ask` 단발·멀티턴 검증 완료(위 절 참고). ~~쿼터~~ — 9/5 밤 유료 등급 전환 완료(하루 20회 제한 해소). 남은 것: 케이스 2 응답 픽스처(Gemini 503으로 미생성) · 통과율 표본
+- ~~실제 LLM 호출~~ — 9/3 `/rag/answer` 검증 완료(3/3 통과), 9/5 `/rag/ask` 단발·멀티턴 검증 완료(위 절 참고). ~~쿼터~~ — 9/5 밤 유료 등급 전환 완료(하루 20회 제한 해소). ~~케이스 2 응답 픽스처~~ — 9/5 밤 생성 완료(1회 통과). ~~통과율 표본~~ — 9/5 밤 5케이스×2회 실측: **case2가 3회 중 1회 반려**(가장 불안정, 표본 작음). 상세 `fixtures/FIXTURES.md`
 - ~~DB 적재·검색 실행~~ — 9/4 Docker 검증 완료(적재 28청크·검색 5/5). 절차는 docs/KAN-16 「실행」
 - ~~Docker 이미지 재빌드~~ — 9/5 밤 재검증 완료. `/rag/ask` 추가 후에도 빌드·기동·`/health`·`/calculate`·`/rag/ask`(422 및 정상 페이로드) 전부 정상, 골든 P0 값 일치
 - docker compose 연동 (도윤 compose 대기)
