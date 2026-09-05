@@ -50,7 +50,7 @@ export GEMINI_API_KEY=...
 ./.venv/bin/python run.py fixtures/case1_small_gap.json
 ```
 
-9/3 실측: 생성 1회 20~36초 · 기본 모델 `gemini-3.6-flash` · 요청 상한 `GEMINI_TIMEOUT_MS`(기본 45000). **무료 등급 키는 모델당 하루 20회**라 429가 나면 쿼터다. 상세 [`docs/KAN-17`](docs/KAN-17-내부HTTP계약.md) 「실측」.
+9/3 실측: 생성 1회 20~36초 · 기본 모델 `gemini-3.6-flash` · 요청 상한 `GEMINI_TIMEOUT_MS`(기본 45000). **9/5 밤 유료 등급 전환 완료** — 무료 등급 하루 20회 제한 해소(전환 전 기록은 `docs/KAN-17` 「실측」에 이력으로 남김).
 
 **pgvector 적재·검색** — [`docs/KAN-16-지식저장소.md`](docs/KAN-16-지식저장소.md) 「실행」 참조. `DATABASE_URL` 없으면 `knowledge/*.md`를 직접 읽는 파일 폴백으로 동작한다.
 
@@ -68,7 +68,7 @@ python3 scripts/smoke.py http://localhost:8000 --llm           # /rag/answer 실
 | `GET /health` | `engine.data_hash` = `sha256:fa84100c…` (data_version 2026-09-02). Spring `data_snapshot(is_current).data_hash` 와 같아야 `SNAPSHOT_MISMATCH` 가 안 난다 |
 | `POST /calculate` | P0 입력 → 골든 P0 원 단위 동일, ~10ms. 검증 실패 422 `{code, retryable:false, errors[]}` → Spring 400 변환 |
 | `POST /rag/answer` | 항상 200 + `status`. 생성 20~60초 → Spring 타임아웃 **90초**. 429/503 은 `EXPLANATION_UNAVAILABLE` (결과 화면은 유지) |
-| 쿼터 | 무료 키 **모델당 하루 20회**, 리셋 한국시간 16~17시. 통합 테스트에 `--llm` 을 아껴 쓸 것. 개발용으로 팀원 개인 Google 계정 무료 키를 하나 더 만들면 20회 추가 |
+| 쿼터 | **9/5 밤 유료 등급 전환 완료** — 하루 20회 제한 없음. 전환 전엔 무료 등급 모델당 하루 20회였음(이력) |
 | 스냅샷 동결(9/6) | 승준이 `engine/data/` 6개 덮어쓰기 → `data_hash` 변경 → 도윤 DB 행 갱신 → **이미지 재빌드** |
 
 ## 내부 HTTP (KAN-17)
@@ -140,6 +140,8 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 
 9/5 도윤 구두 확인("간단한 채팅이라도 있으면 좋겠다") 후 구현, **KAN-24로 사후 등록**(회의·PRD·기존 티켓엔 없던 범위). `feature/rag-ask` 브랜치(ai-service·frontend 둘 다), `develop` 머지는 별도 지시 대기.
 
+**내부 스키마 `AskAnswer.claim: Claim`**(9/5 밤, 전체 검토 중 발견·정정). 처음엔 `answer: Claim`이었는데, 내부 응답 `AskResponse.answer`가 `AskAnswer` 자체라 JSON이 `answer.answer`로 중첩돼 헷갈렸다. Spring 쪽 소비자가 아직 없는 지금 고치는 게 제일 싸서 바로 정정 — `claim`으로 이름 바꿈. 공개 계약(`QuestionResponse.answer: Claim`)은 애초에 이 문제 없이 평평해서 영향 없음.
+
 - **서버는 세션을 저장하지 않는다** — `agent_message`류 저장 없음(9/7 스코프 밖). 대신 **멀티턴 지원**: `ask()`가 `history`(이전 질문·답변 배열)를 받아 `build_ask_message`가 프롬프트 텍스트에 "이전 대화" 절로 얹는다. Gemini `contents`(role 구조)는 안 건드림 — 가드레일 재시도 루프가 이미 그 구조를 쓰고 있어 엉키는 걸 피함
 - **가드레일은 안 바뀜** — history가 있어도 새 답변의 evidence는 여전히 계산 결과 JSON에서만 다시 찾아야 한다(프롬프트에 명시). 이전 답변을 근거로 삼는 것 금지
 - `explain()`/`validate()`와 최대한 재사용: SYSTEM 프롬프트·숫자환각(C4)·evidence(C2·C3)·금지표현(C5) 등은 공유, Explanation 구조 전용 검사(C6·C8·C10·C11)만 제외
@@ -150,7 +152,7 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 
 ## 미검증 · 다음
 
-- ~~실제 LLM 호출~~ — 9/3 검증 완료(3/3 통과, `/rag/answer`만). 키는 **무료 등급 유지**(9/4 팀 결정, 하루 20회). 남은 것: 케이스 2 응답 픽스처(Gemini 503으로 미생성) · 통과율 표본 · **`/rag/ask` 실호출 검증(위 절 참고)**
+- ~~실제 LLM 호출~~ — 9/3 `/rag/answer` 검증 완료(3/3 통과), 9/5 `/rag/ask` 단발·멀티턴 검증 완료(위 절 참고). ~~쿼터~~ — 9/5 밤 유료 등급 전환 완료(하루 20회 제한 해소). 남은 것: 케이스 2 응답 픽스처(Gemini 503으로 미생성) · 통과율 표본
 - ~~DB 적재·검색 실행~~ — 9/4 Docker 검증 완료(적재 28청크·검색 5/5). 절차는 docs/KAN-16 「실행」
 - docker compose 연동 (도윤 compose 대기)
 - ~~KAN-13 픽스처 2~5~~ — 9/4 입력 4 + 응답 3 작성(승준 실험 payload). 케이스 2 응답만 남음

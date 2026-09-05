@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = SimulationInput.model_validate(json.load(open(ROOT / "fixtures/case1_small_gap.json")))
 
 GOOD = {
-    "answer": {
+    "claim": {
         "text": "2021-08~2026-07 시장이 그대로 반복된다면 분기별 리밸런싱의 만기 총자산은 6,975만원입니다.",
         "evidence": ["/meta/window/start", "/meta/window/end", "/per_period/Q/gap/fv_total"],
     },
@@ -54,14 +54,14 @@ check("프롬프트에 결과 JSON 포함", '"per_period"' in fake.prompts[0])
 
 # 2) 청크를 evidence로 인용한 응답도 통과 (exists 검증 포함)
 good_with_chunk = json.loads(json.dumps(GOOD))
-good_with_chunk["answer"]["evidence"].append("chunk:concept/max_drawdown#0")
+good_with_chunk["claim"]["evidence"].append("chunk:concept/max_drawdown#0")
 good_with_chunk["retrieved_refs"] = ["concept/max_drawdown#0"]
 out2 = llm.ask(SRC, "최대 낙폭이 뭐야?", client=FakeGemini([good_with_chunk]), retriever=retriever)
 check("청크 evidence 인용 응답 통과", out2.attempts == 1 and out2.report.passed)
 
 # 3) 없는 청크를 인용하면 C3 → 재시도 후 두 번째 정상 응답으로 통과
 bad_chunk = json.loads(json.dumps(GOOD))
-bad_chunk["answer"]["evidence"].append("chunk:concept/max_drawdown#99")
+bad_chunk["claim"]["evidence"].append("chunk:concept/max_drawdown#99")
 bad_chunk["retrieved_refs"] = ["concept/max_drawdown#99"]
 fake3 = FakeGemini([bad_chunk, GOOD])
 out3 = llm.ask(SRC, "질문", client=fake3, retriever=retriever)
@@ -70,7 +70,7 @@ check("재시도 프롬프트에 위반 내역 전달", "존재하지 않는 청
 
 # 4) 두 번 다 실패 → ExplanationRejected (C5 금지 표현)
 bad = json.loads(json.dumps(GOOD))
-bad["answer"] = {"text": "목표 달성 확률은 90%입니다.", "evidence": ["/goal_amount"]}
+bad["claim"] = {"text": "목표 달성 확률은 90%입니다.", "evidence": ["/goal_amount"]}
 try:
     llm.ask(SRC, "질문", client=FakeGemini([bad, bad]), retriever=retriever)
     check("2회 실패 시 ExplanationRejected", False)
@@ -83,7 +83,7 @@ check("retriever 없이 동작 · chunk_refs 빈 배열", out5.chunk_refs == [] 
 
 # 6) Explanation 고유 구조 검사(C6·C8·C10·C11)가 answer에는 안 걸린다 —
 #    세 주기 언급도, assumptions_note도, focus 라벨도 없는 짧은 답이어도 통과해야 한다
-short = {"answer": {"text": "네, 맞습니다.", "evidence": ["/goal_amount"]}, "retrieved_refs": []}
+short = {"claim": {"text": "네, 맞습니다.", "evidence": ["/goal_amount"]}, "retrieved_refs": []}
 out6 = llm.ask(SRC, "목표금액 5천만원 맞아?", client=FakeGemini([short]), retriever=retriever)
 check("기준구간 언급 없는 짧은 답도 통과 (C11 미적용)", out6.report.passed, [str(v) for v in out6.report.errors])
 

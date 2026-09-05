@@ -413,7 +413,7 @@ def validate(exp: Explanation, source: SimulationInput | dict,
 
 def _claims_ask(ans: AskAnswer) -> list[tuple[str, str, list[str]]]:
     """Explanation._claims()의 답변 전용 버전 — 필드가 answer 하나뿐이다."""
-    return [("answer", ans.answer.text, ans.answer.evidence)]
+    return [("answer", ans.claim.text, ans.claim.evidence)]
 
 
 def validate_ask(ans: AskAnswer, source: SimulationInput | dict, chunk_exists=None) -> Report:
