@@ -7,3 +7,16 @@
 HTTP 층(POST /calculate · 기동 시 Dataset 로드 · /health data_hash · ValidationError → 422)은 성종현이 explainer/에 붙인다.
 엔진 코드 수정은 승준만. 스냅샷 갱신(9/6 동결)도 승준이 파일 교체.
 """
+
+# 패키지 루트 재수출 — api/ 가 레이아웃(평면 vs core/)에 상관없이 `from .. import analyze` 로 쓴다.
+# 기존 `from engine.engine import analyze` (explainer/calculate.py) 는 그대로 동작한다.
+from .cashflow import build_profile, contribution_path, validate_cashflow
+from .dataset import Dataset, DatasetError, add_months, month_index, months_between
+from .engine import ASSUMPTIONS_VERSION, analyze
+from .errors import ValidationError
+
+__all__ = [
+    "ASSUMPTIONS_VERSION", "Dataset", "DatasetError", "ValidationError",
+    "analyze", "build_profile", "contribution_path", "validate_cashflow",
+    "add_months", "month_index", "months_between",
+]
