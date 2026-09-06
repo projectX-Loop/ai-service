@@ -1,0 +1,5 @@
+{
+  "code": "ANSWER_UNAVAILABLE",
+  "message": "지금은 답변할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+  "retryable": true
+}

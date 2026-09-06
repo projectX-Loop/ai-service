@@ -1,4 +1,4 @@
-"""가드레일 검증기 — KAN-12 산출물 ④ (C1~C10)의 구현.
+"""가드레일 검증기 — KAN-12 산출물 ④ 의 구현. KAN-9 §5·§7 정렬본 (2026-09-02).
 
 LLM 응답을 신뢰하지 않고 심문하는 계층. 통과하지 못한 응답은 반환하지 않는다.
 
@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from .schema import Explanation, SimulationInput
+from .schema import AskAnswer, Explanation, SimulationInput
 
 # ─────────────────────────────────────────── 결과 타입
 
@@ -162,6 +162,29 @@ PRODUCT_RE = re.compile(
 LURE_RE = re.compile(r"레버리지|신용거래|대출|자동매매|가입하|청약")
 FORECAST_RE = re.compile(r"(내년|향후|앞으로|다음\s*해).{0,20}(금리|물가|경기|시장|증시)")
 
+# KAN-9 §7 규칙 4 — 파생 성향 라벨을 인격 단정으로 확장
+PERSONA_RE = re.compile(r"(안정형|중립형|공격형|보수적|공격적|안정적)[^.!?\n]{0,12}(사람|성격|성향의 분|투자자이|타입이|분이시|이시네요|이시군요)")
+# KAN-9 §7 규칙 7 — 지출·소비 습관 평가·훈계
+LECTURE_RE = re.compile(r"낭비|과소비|씀씀이|헤프|절약하세요|아끼세요|습관을\s*고치|줄이셔야\s*합니다")
+# KAN-9 §7 규칙 5 — 과거 재현을 미래 예측으로 서술. 조건절이 있으면 허용
+FUTURE_CLAIM_RE = re.compile(r"(\d+\s*년\s*(뒤|후)|만기\s*(에|시)|미래에|앞으로)[^.!?\n]{0,30}(됩니다|될\s*것|도달합니다|도달할|모입니다|만들어집니다)")
+CONDITIONAL_RE = re.compile(r"반복된다면|그대로라면|가정하면|재현|기준 구간|같은 흐름|과거 구간|반복될 경우|재생")
+
+# ── 2026-09-03 승준 KAN-12 변경점 2 (실험 306건·편향 점검 근거) + 계약 v0.2 §6.2 개정 ⑦ (9/4 확정)
+# 분산·채권 편입이 위험을 낮췄다 — 기준 구간 주식·채권 상관 +0.26이라 사실과 반대
+DIVERSIFY_RE = re.compile(r"(분산\s*(투자|효과)|채권을?\s*(섞|더해|포함|편입)|자산을?\s*나눠)[^.!?\n]{0,30}(위험|변동성|낙폭)[^.!?\n]{0,12}(낮|줄|완화|상쇄|억제)")
+# 환율·환헤지 우열 — 상품 우열 권유
+FX_RE = re.compile(r"환율\s*덕분|환차익\s*덕|환헤지가?\s*(유리|낫|좋)|환헤지를?\s*(권|추천)|환노출이\s*(유리|불리)")
+# 값 없는 주기 고정 문구 — "반기가 가장 저렴" 류. 같은 문장에 수치가 있으면 payload 인용으로 보고 허용
+PERIOD_SUPERLATIVE_RE = re.compile(r"(월|분기|반기)(별|\s*리밸런싱)?[^.!?\n]{0,14}(가장|제일|항상|언제나|무조건)\s*(저렴|싸|적|낮|높|크|유리|불리)")
+PERIOD_ALWAYS_RE = re.compile(r"(항상|언제나|무조건|어떤\s*경우에도)[^.!?\n]{0,20}(이탈|비용|낙폭|위험)")
+# "자주 리밸런싱하면 위험(MDD)이 준다" — 롤링 107/145라 구조적 성질 아님
+PERIOD_MDD_RE = re.compile(r"(자주|잦|짧을수록|빈번)[^.!?\n]{0,20}(위험|낙폭|MDD)[^.!?\n]{0,12}(줄|낮|감소|작아)")
+# 자산군 일반화 — 상품명(display_name) 없이 "국내 주식 수익률이 높았다"
+GENERALIZE_RE = re.compile(r"(국내|해외|미국|한국)\s*(주식|채권)[^.!?\n]{0,20}(수익률|수익|성과|가격)[^.!?\n]{0,12}(높|좋|낮|나쁘|부진|상승|하락)")
+# 연장 개월 수 서술 — extension_status가 OK가 아닌데 "N개월 더 ... 도달"
+EXTENSION_CLAIM_RE = re.compile(r"\d+\s*개월[^.!?\n]{0,6}(더|연장|추가)[^.!?\n]{0,25}(도달|달성)")
+
 SENTENCE_SPLIT = re.compile(r"[.!?\n]")
 
 
@@ -182,7 +205,44 @@ def check_forbidden(text: str) -> list[tuple[str, str]]:
             hits.append(("자동매매·대출·상품 가입 유도", s))
         if FORECAST_RE.search(s):
             hits.append(("시장 전망 제시", s))
+        if PERSONA_RE.search(s):
+            hits.append(("성향 라벨의 인격 단정 (KAN-9 규칙 4)", s))
+        if LECTURE_RE.search(s):
+            hits.append(("지출·소비 습관 평가·훈계 (KAN-9 규칙 7)", s))
+        if DIVERSIFY_RE.search(s):
+            hits.append(("분산·채권 편입이 위험을 낮췄다는 서술 (승준 변경점 2 — 기준 구간 상관 +0.26)", s))
+        if FX_RE.search(s):
+            hits.append(("환율·환헤지 우열 서술 (승준 변경점 2)", s))
     return hits
+
+
+def check_period_claims(text: str, degenerate: bool) -> list[tuple[str, str]]:
+    """C14 자동 부분 — 주기 고정 문구·'항상'·MDD 억제·퇴화 케이스 우열 (계약 v0.2 §6.2 개정 ⑦)."""
+    hits: list[tuple[str, str]] = []
+    for sentence in SENTENCE_SPLIT.split(text):
+        s = sentence.strip()
+        if not s:
+            continue
+        has_number = bool(NUMBER_RE.search(DATE_RE.sub(" ", s)) and re.search(r"\d", DATE_RE.sub(" ", s)))
+        if PERIOD_SUPERLATIVE_RE.search(s) and not has_number:
+            hits.append(("값 없는 주기 고정 문구 — payload 값을 인용할 때만 비교 가능", s))
+        if PERIOD_ALWAYS_RE.search(s):
+            hits.append(("주기 성질을 '항상'으로 서술 — 롤링에서도 예외 존재", s))
+        if PERIOD_MDD_RE.search(s):
+            hits.append(("자주 리밸런싱하면 위험이 준다는 서술 — 구조적 성질 아님(롤링 107/145)", s))
+        if degenerate and re.search(r"(월|분기|반기)[^.!?\n]{0,14}(유리|불리|낫|저렴|비용이\s*(크|많|적))", s):
+            hits.append(("세 주기 결과가 같은데 주기 우열 서술", s))
+    return hits
+
+
+def check_future_claims(text: str) -> list[str]:
+    """KAN-9 규칙 5 — 조건절 없는 미래 단정 문장 목록."""
+    bad = []
+    for sentence in SENTENCE_SPLIT.split(text):
+        s = sentence.strip()
+        if s and FUTURE_CLAIM_RE.search(s) and not CONDITIONAL_RE.search(s):
+            bad.append(s)
+    return bad
 
 
 # ─────────────────────────────────────────── 본 검사
@@ -192,91 +252,269 @@ def _claims(exp: Explanation) -> list[tuple[str, str, list[str]]]:
     """(위치, 텍스트, evidence) 평탄화."""
     items: list[tuple[str, str, list[str]]] = [
         ("summary", exp.summary.text, exp.summary.evidence),
-        ("goal_gap", exp.goal_gap.text, exp.goal_gap.evidence),
+        ("assumptions_note", exp.assumptions_note.text, exp.assumptions_note.evidence),
     ]
-    for i, fc in enumerate(exp.frequency_comparison):
-        items.append((f"frequency_comparison[{i}].observation", fc.observation, fc.evidence))
-        items.append((f"frequency_comparison[{i}].tradeoff", fc.tradeoff, fc.evidence))
-    for i, rf in enumerate(exp.risk_factors):
-        items.append((f"risk_factors[{i}]", f"{rf.title} {rf.detail}", rf.evidence))
-    for i, na in enumerate(exp.next_actions):
-        items.append((f"next_actions[{i}]", na.text, na.evidence))
+    for p, pc in exp.per_period_pros_cons.items():
+        for i, c in enumerate(pc.pros):
+            items.append((f"per_period_pros_cons[{p.value}].pros[{i}]", c.text, c.evidence))
+        for i, c in enumerate(pc.cons):
+            items.append((f"per_period_pros_cons[{p.value}].cons[{i}]", c.text, c.evidence))
+    for i, r in enumerate(exp.risks):
+        items.append((f"risks[{i}]", f"{r.title} {r.detail}", r.evidence))
+    for i, a in enumerate(exp.next_actions):
+        items.append((f"next_actions[{i}]", a.text, a.evidence))
     return items
 
 
-def validate(exp: Explanation, source: SimulationInput | dict) -> Report:
+def _window_mentioned(text: str, window: dict) -> bool:
+    """기준 구간이 언급됐는가 — 시작/끝 연월, 연도, 또는 '기준 구간'이라는 말."""
+    start, end = str(window.get("start", "")), str(window.get("end", ""))
+    keys = {start, end, start[:4], end[:4], "기준 구간"} - {""}
+    return any(k in text for k in keys)
+
+
+def validate(exp: Explanation, source: SimulationInput | dict,
+             chunk_exists=None) -> Report:
+    """chunk_exists: Callable[[str], bool] — KAN-17에서 DB 조회를 주입. None이면 형식만 검사."""
     data = source.model_dump(mode="json") if isinstance(source, SimulationInput) else source
     candidates = collect_input_numbers(data)
     v: list[Violation] = []
     claims = _claims(exp)
+    window = data.get("meta", {}).get("window", {})
 
     # C2 — 모든 텍스트 필드에 evidence가 있는가
     for where, text, ev in claims:
         if not ev:
             v.append(Violation("C2", "ERROR", f"{where}: evidence가 비어 있음"))
 
-    # C3 — evidence의 JSON Pointer가 입력에 실제로 존재하는가
+    # C3 — evidence가 실제로 존재하는가 (JSON Pointer 또는 chunk 참조)
+    chunk_refs: set[str] = set()
     for where, _text, ev in claims:
-        for pointer in ev:
+        for e in ev:
+            if e.startswith("chunk:"):
+                ref = e[len("chunk:"):]
+                chunk_refs.add(ref)
+                if "#" not in ref:
+                    v.append(Violation("C3", "ERROR", f"{where}: 청크 참조 형식 오류 '{e}' (source_id#idx)"))
+                elif chunk_exists is not None and not chunk_exists(ref):
+                    v.append(Violation("C3", "ERROR", f"{where}: 존재하지 않는 청크 {e}"))
+                continue
             try:
-                resolve_pointer(data, pointer)
-            except KeyError as e:
-                v.append(Violation("C3", "ERROR", f"{where}: 존재하지 않는 경로 {e}"))
+                resolve_pointer(data, e)
+            except (KeyError, IndexError, ValueError) as err:
+                v.append(Violation("C3", "ERROR", f"{where}: 존재하지 않는 경로 {err}"))
 
     # C4 — 텍스트의 숫자가 입력에서 재현 가능한가 (환각 탐지)
-    for where, text, _ev in claims:
+    for where, text, ev in claims:
         for raw, value, has_unit in extract_numbers(text):
             if matches_any(value, candidates):
                 continue
-            # 단위 없는 작은 정수(1~12)만 경고로 낮춘다. 순번·개수일 가능성이 있어서다.
-            # 0.85 같은 소수는 지표 환각일 확률이 높으므로 단위가 없어도 ERROR.
             is_small_ordinal = (not has_unit) and value.is_integer() and 1 <= value <= 12
             sev = "WARN" if is_small_ordinal else "ERROR"
-            v.append(
-                Violation("C4", sev, f"{where}: 입력에 없는 수치 '{raw}' (해석값 {value:,.4g})")
-            )
+            v.append(Violation("C4", sev, f"{where}: 입력에 없는 수치 '{raw}' (해석값 {value:,.4g})"))
+
+    # C13 — 청크를 근거로 든 문장에는 수치를 쓸 수 없다 (청크는 개념 설명 전용)
+    for where, text, ev in claims:
+        if any(e.startswith("chunk:") for e in ev) and not any(not e.startswith("chunk:") for e in ev):
+            nums = [raw for raw, _v, _u in extract_numbers(text)]
+            if nums:
+                v.append(Violation("C13", "ERROR", f"{where}: 청크만 근거인 문장에 수치 {nums} — 수치는 계산 결과에서만"))
+
+    # C5 — 금지 표현 (KAN-9 규칙 1·2·3·4·7)
+    for where, text, _ev in claims:
+        for reason, sentence in check_forbidden(text):
+            v.append(Violation("C5", "ERROR", f"{where}: {reason} — \"{sentence}\""))
+
+    # C12 — 과거 재현을 미래 예측으로 서술 (KAN-9 규칙 5). 조건절 없는 미래 단정
+    for where, text, _ev in claims:
+        for s in check_future_claims(text):
+            v.append(Violation("C12", "ERROR", f"{where}: 조건절 없는 미래 단정 (규칙 5) — \"{s}\""))
+
+    # C6 — 세 주기 장단점이 전부 있는가
+    got = {p.value for p in exp.per_period_pros_cons}
+    if got != {"M", "Q", "H"}:
+        v.append(Violation("C6", "ERROR", f"per_period_pros_cons 주기 누락/초과: {sorted(got)}"))
+
+    # C8 — assumptions_note가 기준 구간·환노출·data_basis를 담는가
+    an = exp.assumptions_note.text
+    if not _window_mentioned(an, window):
+        v.append(Violation("C8", "ERROR", "assumptions_note에 기준 구간(meta.window)이 없음"))
+    if "환" not in an:
+        foreign = any(str(a.get("code", "")).startswith("US_") or a.get("tax_class") == "foreign_listed"
+                      for a in data.get("meta", {}).get("assets_used", []))
+        if foreign:
+            v.append(Violation("C8", "ERROR", "해외 자산이 있는데 assumptions_note에 환노출 언급 없음 (KAN-9 §7 · 승준 변경점 3)"))
+    if not an.strip():
+        v.append(Violation("C8", "ERROR", "assumptions_note가 비어 있음"))
+
+    # C11 — summary에 기준 구간 언급 (KAN-9 규칙 6: 조건절 없는 금액 서술 금지)
+    if not _window_mentioned(exp.summary.text, window):
+        v.append(Violation("C11", "ERROR", "summary에 기준 구간 언급 없음 (규칙 6)"))
+
+    # C14 (자동 부분) — 주기 고정 문구·항상·MDD 억제·퇴화 우열. 나머지 우열 판정은 사람(C14 사람)
+    periods = data.get("per_period", {}) or {}
+    fvs = {(p.get("gap", {}) or {}).get("fv_total") for p in periods.values()}
+    costs = {p.get("cum_cost") for p in periods.values()}
+    degenerate = len(periods) >= 2 and len(fvs) == 1 and len(costs) == 1
+    for where, text, _ev in claims:
+        for reason, s in check_period_claims(text, degenerate):
+            v.append(Violation("C14", "ERROR", f"{where}: {reason} — \"{s}\""))
+
+    # C16 — 연장 서술이 gap.extension_status와 어긋남 (승준 변경점 1). focus 주기 우선, 없으면 전체
+    statuses = {k: (p.get("gap", {}) or {}).get("extension_status") for k, p in periods.items()}
+    focus_key = data.get("focus")
+    check_keys = [focus_key] if focus_key in statuses else list(statuses)
+    non_ok = {k: statuses[k] for k in check_keys if statuses.get(k) not in (None, "OK")}
+    if non_ok:
+        for where, text, _ev in claims:
+            for sentence in SENTENCE_SPLIT.split(text):
+                s = sentence.strip()
+                if EXTENSION_CLAIM_RE.search(s) and not re.search(r"범위|넘|초과|확인할 수 없", s):
+                    v.append(Violation("C16", "ERROR",
+                        f"{where}: extension_status={non_ok} 인데 연장 개월을 도달 안내로 서술 — \"{s}\""))
+
+    # C17 — 자산군 일반화 (승준 변경점 3: assets_used.display_name 으로 부를 것)
+    names = [a.get("display_name", "") for a in data.get("meta", {}).get("assets_used", []) if a.get("display_name")]
+    for where, text, _ev in claims:
+        for sentence in SENTENCE_SPLIT.split(text):
+            s = sentence.strip()
+            if GENERALIZE_RE.search(s) and not any(n and n in s for n in names):
+                v.append(Violation("C17", "WARN", f"{where}: 자산군 일반화 — display_name으로 지칭할 것 — \"{s}\""))
+
+    # C18 — vol_annual_pct 단독 인용 (목표 비중 기준이라 총자산 위험으로 오독)
+    for where, _text, ev in claims:
+        ptrs = [e for e in ev if not e.startswith("chunk:")]
+        if any(e.endswith("/vol_annual_pct") for e in ptrs) and not any(
+                e.endswith("/mdd_pct") or e.endswith("/worst_month_pct") for e in ptrs):
+            v.append(Violation("C18", "WARN", f"{where}: vol_annual_pct 단독 인용 — mdd_pct·worst_month_pct와 함께"))
+
+    # C10 — 선택된 주기 반영 (PRD 수용기준 4). focus는 KAN-9 §5에 없어 backend가 함께 넘긴다
+    focus = data.get("focus")
+    if focus is None:
+        v.append(Violation("C10", "WARN", "focus 없음 — 강조 주기 검증 건너뜀"))
+    else:
+        hp = exp.highlighted_period.value if exp.highlighted_period else None
+        if hp != focus:
+            v.append(Violation("C10", "ERROR", f"highlighted_period={hp} != focus={focus}"))
+        label = {"M": "월", "Q": "분기", "H": "반기"}[focus]
+        if label not in exp.summary.text:
+            v.append(Violation("C10", "ERROR", f"선택된 주기('{label}별')가 summary에 언급되지 않음"))
+
+    # retrieved_refs — 문장별 chunk evidence의 합집합과 일치하는가
+    normalized_refs = {r[len("chunk:"):] if r.startswith("chunk:") else r for r in exp.retrieved_refs}
+    if normalized_refs != chunk_refs:
+        v.append(Violation("C3", "WARN", f"retrieved_refs {sorted(exp.retrieved_refs)} != evidence 청크 합집합 {sorted(chunk_refs)}"))
+
+    return Report(v)
+
+
+# ─────────────────────────────────────────── 질문 답변 (KAN-24)
+
+
+def _claims_ask(ans: AskAnswer) -> list[tuple[str, str, list[str]]]:
+    """Explanation._claims()의 답변 전용 버전 — 필드가 answer 하나뿐이다."""
+    return [("answer", ans.claim.text, ans.claim.evidence)]
+
+
+def validate_ask(ans: AskAnswer, source: SimulationInput | dict, chunk_exists=None) -> Report:
+    """단발 질문 답변 검증. validate()에서 Explanation 고유 구조 검사(C6·C8·C10·C11)만 뺐다.
+
+    나머지(C2·C3·C4·C5·C12·C13·C14·C16·C17·C18)는 텍스트·evidence만 보는 검사라
+    답변이 summary/risks/next_actions 같은 필드 없이 문장 하나뿐이어도 그대로 적용된다.
+    """
+    data = source.model_dump(mode="json") if isinstance(source, SimulationInput) else source
+    candidates = collect_input_numbers(data)
+    v: list[Violation] = []
+    claims = _claims_ask(ans)
+
+    # C2 — evidence가 있는가
+    for where, text, ev in claims:
+        if not ev:
+            v.append(Violation("C2", "ERROR", f"{where}: evidence가 비어 있음"))
+
+    # C3 — evidence가 실제로 존재하는가
+    chunk_refs: set[str] = set()
+    for where, _text, ev in claims:
+        for e in ev:
+            if e.startswith("chunk:"):
+                ref = e[len("chunk:"):]
+                chunk_refs.add(ref)
+                if "#" not in ref:
+                    v.append(Violation("C3", "ERROR", f"{where}: 청크 참조 형식 오류 '{e}' (source_id#idx)"))
+                elif chunk_exists is not None and not chunk_exists(ref):
+                    v.append(Violation("C3", "ERROR", f"{where}: 존재하지 않는 청크 {e}"))
+                continue
+            try:
+                resolve_pointer(data, e)
+            except (KeyError, IndexError, ValueError) as err:
+                v.append(Violation("C3", "ERROR", f"{where}: 존재하지 않는 경로 {err}"))
+
+    # C4 — 숫자 환각
+    for where, text, ev in claims:
+        for raw, value, has_unit in extract_numbers(text):
+            if matches_any(value, candidates):
+                continue
+            is_small_ordinal = (not has_unit) and value.is_integer() and 1 <= value <= 12
+            sev = "WARN" if is_small_ordinal else "ERROR"
+            v.append(Violation("C4", sev, f"{where}: 입력에 없는 수치 '{raw}' (해석값 {value:,.4g})"))
+
+    # C13 — 청크만 근거인 문장에 수치 금지
+    for where, text, ev in claims:
+        if any(e.startswith("chunk:") for e in ev) and not any(not e.startswith("chunk:") for e in ev):
+            nums = [raw for raw, _v, _u in extract_numbers(text)]
+            if nums:
+                v.append(Violation("C13", "ERROR", f"{where}: 청크만 근거인 문장에 수치 {nums} — 수치는 계산 결과에서만"))
 
     # C5 — 금지 표현
     for where, text, _ev in claims:
         for reason, sentence in check_forbidden(text):
             v.append(Violation("C5", "ERROR", f"{where}: {reason} — \"{sentence}\""))
 
-    # C6 — frequency_comparison이 세 주기를 중복 없이 다루는가
-    freqs = [fc.frequency for fc in exp.frequency_comparison]
-    if len(set(freqs)) != 3:
-        v.append(Violation("C6", "ERROR", f"주기 중복 또는 누락: {[f.value for f in freqs]}"))
+    # C12 — 조건절 없는 미래 단정
+    for where, text, _ev in claims:
+        for s in check_future_claims(text):
+            v.append(Violation("C12", "ERROR", f"{where}: 조건절 없는 미래 단정 (규칙 5) — \"{s}\""))
 
-    # C8 — data_basis가 입력 meta와 일치하는가
-    meta = data["meta"]
-    expected_period = f"{meta['data_period']['start']} ~ {meta['data_period']['end']}"
-    if exp.data_basis.period.replace(" ", "") != expected_period.replace(" ", ""):
-        v.append(
-            Violation("C8", "ERROR",
-                      f"data_basis.period 불일치: '{exp.data_basis.period}' != '{expected_period}'")
-        )
-    if list(exp.data_basis.assumptions) != list(meta["assumptions"]):
-        v.append(Violation("C8", "ERROR", "data_basis.assumptions가 meta와 다름"))
-    if not exp.data_basis.disclaimer.strip():
-        v.append(Violation("C8", "ERROR", "투자 유의 문구가 비어 있음"))
+    # C14 — 주기 고정 문구·항상·MDD 억제·퇴화 우열
+    periods = data.get("per_period", {}) or {}
+    fvs = {(p.get("gap", {}) or {}).get("fv_total") for p in periods.values()}
+    costs = {p.get("cum_cost") for p in periods.values()}
+    degenerate = len(periods) >= 2 and len(fvs) == 1 and len(costs) == 1
+    for where, text, _ev in claims:
+        for reason, s in check_period_claims(text, degenerate):
+            v.append(Violation("C14", "ERROR", f"{where}: {reason} — \"{s}\""))
 
-    # C10 — 선택된 주기 반영 (PRD 수용기준 4)
-    # KAN-9의 rebalancing.focus는 선택 필드다. 없으면 강조할 주기가 없다는 뜻이므로
-    # 검증을 건너뛰되, PRD 수용기준 4를 못 지킨 상태임을 경고로 남긴다.
-    selected = data.get("selected_frequency")
-    if selected is None:
-        v.append(
-            Violation("C10", "WARN",
-                      "selected_frequency(=KAN-9 rebalancing.focus)가 없어 강조 주기 검증을 건너뜀")
-        )
-    else:
-        if exp.highlighted_frequency.value != selected:
-            v.append(
-                Violation("C10", "ERROR",
-                          f"highlighted_frequency={exp.highlighted_frequency.value} != selected_frequency={selected}")
-            )
-        label = {"MONTHLY": "월", "QUARTERLY": "분기", "SEMIANNUAL": "반기"}[selected]
-        head = exp.summary.text + " " + exp.goal_gap.text
-        if label not in head:
-            v.append(Violation("C10", "ERROR", f"선택된 주기('{label}별')가 요약·간극 설명에 언급되지 않음"))
+    # C16 — 연장 서술이 gap.extension_status와 어긋남
+    statuses = {k: (p.get("gap", {}) or {}).get("extension_status") for k, p in periods.items()}
+    focus_key = data.get("focus")
+    check_keys = [focus_key] if focus_key in statuses else list(statuses)
+    non_ok = {k: statuses[k] for k in check_keys if statuses.get(k) not in (None, "OK")}
+    if non_ok:
+        for where, text, _ev in claims:
+            for sentence in SENTENCE_SPLIT.split(text):
+                s = sentence.strip()
+                if EXTENSION_CLAIM_RE.search(s) and not re.search(r"범위|넘|초과|확인할 수 없", s):
+                    v.append(Violation("C16", "ERROR",
+                        f"{where}: extension_status={non_ok} 인데 연장 개월을 도달 안내로 서술 — \"{s}\""))
+
+    # C17 — 자산군 일반화
+    names = [a.get("display_name", "") for a in data.get("meta", {}).get("assets_used", []) if a.get("display_name")]
+    for where, text, _ev in claims:
+        for sentence in SENTENCE_SPLIT.split(text):
+            s = sentence.strip()
+            if GENERALIZE_RE.search(s) and not any(n and n in s for n in names):
+                v.append(Violation("C17", "WARN", f"{where}: 자산군 일반화 — display_name으로 지칭할 것 — \"{s}\""))
+
+    # C18 — vol_annual_pct 단독 인용
+    for where, _text, ev in claims:
+        ptrs = [e for e in ev if not e.startswith("chunk:")]
+        if any(e.endswith("/vol_annual_pct") for e in ptrs) and not any(
+                e.endswith("/mdd_pct") or e.endswith("/worst_month_pct") for e in ptrs):
+            v.append(Violation("C18", "WARN", f"{where}: vol_annual_pct 단독 인용 — mdd_pct·worst_month_pct와 함께"))
+
+    # retrieved_refs — evidence 청크 합집합과 일치하는가
+    normalized_refs = {r[len("chunk:"):] if r.startswith("chunk:") else r for r in ans.retrieved_refs}
+    if normalized_refs != chunk_refs:
+        v.append(Violation("C3", "WARN", f"retrieved_refs {sorted(ans.retrieved_refs)} != evidence 청크 합집합 {sorted(chunk_refs)}"))
 
     return Report(v)

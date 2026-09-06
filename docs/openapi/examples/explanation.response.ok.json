@@ -1,0 +1,101 @@
+{
+  "status": "OK",
+  "explanation": {
+    "highlighted_period": "Q",
+    "summary": {
+      "text": "2021-08~2026-07 시장이 그대로 반복된다면 분기별 리밸런싱의 만기 총자산은 6,975만원으로 목표 5,000만원을 1,975만원 초과합니다. 세 주기 모두 이 구간에서는 목표를 넘겼습니다.",
+      "evidence": [
+        "/meta/window/start",
+        "/meta/window/end",
+        "/per_period/Q/gap/fv_total",
+        "/per_period/Q/gap/shortfall",
+        "/goal_amount"
+      ]
+    },
+    "per_period_pros_cons": {
+      "M": {
+        "pros": [
+          {
+            "text": "최대 이탈이 12.3%로 세 주기 중 가장 작아 목표 비중에서 덜 벗어납니다.",
+            "evidence": [
+              "/per_period/M/risk/max_drift_pct"
+            ]
+          }
+        ],
+        "cons": [
+          {
+            "text": "누적 거래비용이 약 4만원으로 세 주기 중 가장 큽니다.",
+            "evidence": [
+              "/per_period/M/cum_cost"
+            ]
+          }
+        ]
+      },
+      "Q": {
+        "pros": [
+          {
+            "text": "누적 거래비용 2만 6천원으로 월별보다 낮습니다.",
+            "evidence": [
+              "/per_period/Q/cum_cost"
+            ]
+          }
+        ],
+        "cons": [
+          {
+            "text": "최대 낙폭이 8.5%로 월별보다 큽니다.",
+            "evidence": [
+              "/per_period/Q/risk/mdd_pct"
+            ]
+          }
+        ]
+      },
+      "H": {
+        "pros": [
+          {
+            "text": "누적 거래비용이 약 2만 6천원으로 가장 낮습니다.",
+            "evidence": [
+              "/per_period/H/cum_cost"
+            ]
+          }
+        ],
+        "cons": [
+          {
+            "text": "최대 이탈이 23.7%로 가장 커서 목표 비중에서 크게 벗어난 구간이 있었습니다.",
+            "evidence": [
+              "/per_period/H/risk/max_drift_pct"
+            ]
+          }
+        ]
+      }
+    },
+    "risks": [
+      {
+        "title": "최대 낙폭 구간의 심리적 부담",
+        "detail": "분기별 기준 이 구간에서 자산이 고점 대비 8.5%까지 줄어든 시점이 있었습니다. 같은 폭의 하락이 다시 없으리라는 근거는 이 분석에 포함되어 있지 않습니다.",
+        "evidence": [
+          "/per_period/Q/risk/mdd_pct"
+        ]
+      }
+    ],
+    "next_actions": [
+      {
+        "adjustable_input": "GOAL_AMOUNT",
+        "text": "이 구간에서는 목표를 초과했으므로, 목표 금액을 높인 조건으로 다시 계산해볼 수 있습니다.",
+        "evidence": [
+          "/per_period/Q/gap/shortfall"
+        ]
+      }
+    ],
+    "assumptions_note": {
+      "text": "기준 구간 2021-08~2026-07의 실제 월간 총수익률을 재생한 결과이며, 해외 주식은 환노출(무헤지) 상태입니다. 안전저축 금리는 연 2.96%로 고정했습니다. 과거 데이터 기반이며 미래 수익을 보장하지 않습니다.",
+      "evidence": [
+        "/meta/window/start",
+        "/meta/window/end",
+        "/meta/data_basis",
+        "/meta/safe_rate_annual_pct"
+      ]
+    },
+    "retrieved_refs": []
+  },
+  "message": null
+}

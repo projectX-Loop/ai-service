@@ -1,0 +1,5 @@
+{
+  "code": "SNAPSHOT_MISMATCH",
+  "message": "데이터 기준이 일치하지 않아 계산을 중단했습니다.",
+  "retryable": false
+}

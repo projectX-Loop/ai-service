@@ -1,0 +1,1628 @@
+{
+  "status": "OK",
+  "meta": {
+    "assumptions_version": "v0.3",
+    "data_version": "2026-09-02",
+    "data_hash": "sha256:fa84100c67a0589aaa3cdb88a13138b87dba6417403f56608680896dbfddb90d",
+    "window": {
+      "start": "2021-08",
+      "end": "2026-07",
+      "months": 60
+    },
+    "start_month": "2026-08",
+    "target_month": "2031-07",
+    "assets_used": [
+      {
+        "code": "US_EQ",
+        "display_name": "해외 주식 (SPY × USD/KRW)",
+        "instrument": "SPY",
+        "tax_class": "foreign_listed",
+        "history": [
+          "2009-02",
+          "2026-07"
+        ]
+      }
+    ],
+    "cashflow_source": "none",
+    "series_used": [
+      "monthly_returns",
+      "deposit_rate_monthly"
+    ],
+    "options": {
+      "growth_mode": "flat",
+      "safe_rate_mode": "fixed_avg",
+      "lot_rounding": false,
+      "account": null
+    },
+    "safe_rate_annual_pct": 2.962167,
+    "data_basis": "실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지) · 안전저축 연 2.96%(기준 구간 정기예금 가중평균금리 평균 고정) · 납입 경로: funds.monthly 상수 (상수 반복) · 세금 제외",
+    "warnings": [],
+    "generated_at": "2026-09-02T00:00:00+00:00"
+  },
+  "derived": {
+    "propensity_label": "중립형",
+    "invest_share_overall_pct": 50.0,
+    "plan_excluded_amount": 0
+  },
+  "cashflow": {
+    "profile": null,
+    "monthly_contribution": [
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000
+    ],
+    "surplus_rate_pct": null,
+    "bonus_share_pct": null,
+    "months_zero": 0,
+    "emergency_filled_month": 0,
+    "growth_effect_pct": null,
+    "surplus_headroom": null
+  },
+  "per_period": {
+    "M": {
+      "trajectory": [
+        {
+          "month": 1,
+          "invest": 5522323,
+          "safe": 5312178,
+          "total": 10834501,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 2,
+          "invest": 5657495,
+          "safe": 5625116,
+          "total": 11282611,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 3,
+          "invest": 6286846,
+          "safe": 5938817,
+          "total": 12225663,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 4,
+          "invest": 6651680,
+          "safe": 6253281,
+          "total": 12904961,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 5,
+          "invest": 7213087,
+          "safe": 6568511,
+          "total": 13781598,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 6,
+          "invest": 7229915,
+          "safe": 6884510,
+          "total": 14114425,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 7,
+          "invest": 7318110,
+          "safe": 7201277,
+          "total": 14519387,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 8,
+          "invest": 7944187,
+          "safe": 7518817,
+          "total": 15463004,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 9,
+          "invest": 7897520,
+          "safe": 7837129,
+          "total": 15734649,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 10,
+          "invest": 8068039,
+          "safe": 8156217,
+          "total": 16224256,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 11,
+          "invest": 7982471,
+          "safe": 8476082,
+          "total": 16458553,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 12,
+          "invest": 9092250,
+          "safe": 8796727,
+          "total": 17888977,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 13,
+          "invest": 9312049,
+          "safe": 9118152,
+          "total": 18430201,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 14,
+          "invest": 9298564,
+          "safe": 9440360,
+          "total": 18738924,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 15,
+          "invest": 10245544,
+          "safe": 9763352,
+          "total": 20008896,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 16,
+          "invest": 10445919,
+          "safe": 10087132,
+          "total": 20533051,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 17,
+          "invest": 9669153,
+          "safe": 10411700,
+          "total": 20080853,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 18,
+          "invest": 10264041,
+          "safe": 10737058,
+          "total": 21001099,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 19,
+          "invest": 11028156,
+          "safe": 11063209,
+          "total": 22091365,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 20,
+          "invest": 11618839,
+          "safe": 11390155,
+          "total": 23008994,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 21,
+          "invest": 12431141,
+          "safe": 11717896,
+          "total": 24149037,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 22,
+          "invest": 12623405,
+          "safe": 12046436,
+          "total": 24669841,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 23,
+          "invest": 13645691,
+          "safe": 12375776,
+          "total": 26021467,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 24,
+          "invest": 14040113,
+          "safe": 12705918,
+          "total": 26746031,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 25,
+          "invest": 14558515,
+          "safe": 13036865,
+          "total": 27595380,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 26,
+          "invest": 14413367,
+          "safe": 13368617,
+          "total": 27781984,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 27,
+          "invest": 14484205,
+          "safe": 13701177,
+          "total": 28185382,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 28,
+          "invest": 15361605,
+          "safe": 14034548,
+          "total": 29396153,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 29,
+          "invest": 16367779,
+          "safe": 14368730,
+          "total": 30736509,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 30,
+          "invest": 17459638,
+          "safe": 14703726,
+          "total": 32163364,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 31,
+          "invest": 18717592,
+          "safe": 15039538,
+          "total": 33757130,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 32,
+          "invest": 19815015,
+          "safe": 15376168,
+          "total": 35191183,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 33,
+          "invest": 19766343,
+          "safe": 15713618,
+          "total": 35479961,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 34,
+          "invest": 21032828,
+          "safe": 16051890,
+          "total": 37084718,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 35,
+          "invest": 22275622,
+          "safe": 16390985,
+          "total": 38666607,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 36,
+          "invest": 22770557,
+          "safe": 16730907,
+          "total": 39501464,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 37,
+          "invest": 22772744,
+          "safe": 17071657,
+          "total": 39844401,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 38,
+          "invest": 23277547,
+          "safe": 17413236,
+          "total": 40690783,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 39,
+          "invest": 24483315,
+          "safe": 17755647,
+          "total": 42238962,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 40,
+          "invest": 26456990,
+          "safe": 18098893,
+          "total": 44555883,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 41,
+          "invest": 27514330,
+          "safe": 18442974,
+          "total": 45957304,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 42,
+          "invest": 27847741,
+          "safe": 18787893,
+          "total": 46635634,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 43,
+          "invest": 27914918,
+          "safe": 19133653,
+          "total": 47048571,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 44,
+          "invest": 27151918,
+          "safe": 19480254,
+          "total": 46632172,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 45,
+          "invest": 26702437,
+          "safe": 19827700,
+          "total": 46530137,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 46,
+          "invest": 27553859,
+          "safe": 20175992,
+          "total": 47729851,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 47,
+          "invest": 28745316,
+          "safe": 20525132,
+          "total": 49270448,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 48,
+          "invest": 30281744,
+          "safe": 20875123,
+          "total": 51156867,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 49,
+          "invest": 31330339,
+          "safe": 21225966,
+          "total": 52556305,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 50,
+          "invest": 33063966,
+          "safe": 21577663,
+          "total": 54641629,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 51,
+          "invest": 34658967,
+          "safe": 21930217,
+          "total": 56589184,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 52,
+          "invest": 36041452,
+          "safe": 22283630,
+          "total": 58325082,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 53,
+          "invest": 35633768,
+          "safe": 22637904,
+          "total": 58271672,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 54,
+          "invest": 36259705,
+          "safe": 22993040,
+          "total": 59252745,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 55,
+          "invest": 36183222,
+          "safe": 23349041,
+          "total": 59532263,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 56,
+          "invest": 36842973,
+          "safe": 23705910,
+          "total": 60548883,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 57,
+          "invest": 40009833,
+          "safe": 24063648,
+          "total": 64073481,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 58,
+          "invest": 43262617,
+          "safe": 24422256,
+          "total": 67684873,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 59,
+          "invest": 44132311,
+          "safe": 24781739,
+          "total": 68914050,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 60,
+          "invest": 41572128,
+          "safe": 25142097,
+          "total": 66714225,
+          "contribution": 600000,
+          "cash_residual": 0
+        }
+      ],
+      "cum_cost": 11500,
+      "risk": {
+        "mdd_pct": 3.19,
+        "vol_annual_pct": 13.66,
+        "worst_month_pct": -10.31,
+        "max_drift_pct": 0.0
+      },
+      "gap": {
+        "fv_total": 66714225,
+        "shortfall": -6714225,
+        "extra_monthly_required": 0,
+        "months_extension": 0,
+        "months_extension_raw": 0,
+        "extension_status": "OK",
+        "extra_monthly_ratio": null,
+        "status": "already_met",
+        "basis": "pre_tax"
+      }
+    },
+    "Q": {
+      "trajectory": [
+        {
+          "month": 1,
+          "invest": 5522323,
+          "safe": 5312178,
+          "total": 10834501,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 2,
+          "invest": 5657495,
+          "safe": 5625116,
+          "total": 11282611,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 3,
+          "invest": 6286846,
+          "safe": 5938817,
+          "total": 12225663,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 4,
+          "invest": 6651680,
+          "safe": 6253281,
+          "total": 12904961,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 5,
+          "invest": 7213087,
+          "safe": 6568511,
+          "total": 13781598,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 6,
+          "invest": 7229915,
+          "safe": 6884510,
+          "total": 14114425,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 7,
+          "invest": 7318110,
+          "safe": 7201277,
+          "total": 14519387,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 8,
+          "invest": 7944187,
+          "safe": 7518817,
+          "total": 15463004,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 9,
+          "invest": 7897520,
+          "safe": 7837129,
+          "total": 15734649,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 10,
+          "invest": 8068039,
+          "safe": 8156217,
+          "total": 16224256,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 11,
+          "invest": 7982471,
+          "safe": 8476082,
+          "total": 16458553,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 12,
+          "invest": 9092250,
+          "safe": 8796727,
+          "total": 17888977,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 13,
+          "invest": 9312049,
+          "safe": 9118152,
+          "total": 18430201,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 14,
+          "invest": 9298564,
+          "safe": 9440360,
+          "total": 18738924,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 15,
+          "invest": 10245544,
+          "safe": 9763352,
+          "total": 20008896,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 16,
+          "invest": 10445919,
+          "safe": 10087132,
+          "total": 20533051,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 17,
+          "invest": 9669153,
+          "safe": 10411700,
+          "total": 20080853,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 18,
+          "invest": 10264041,
+          "safe": 10737058,
+          "total": 21001099,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 19,
+          "invest": 11028156,
+          "safe": 11063209,
+          "total": 22091365,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 20,
+          "invest": 11618839,
+          "safe": 11390155,
+          "total": 23008994,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 21,
+          "invest": 12431141,
+          "safe": 11717896,
+          "total": 24149037,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 22,
+          "invest": 12623405,
+          "safe": 12046436,
+          "total": 24669841,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 23,
+          "invest": 13645691,
+          "safe": 12375776,
+          "total": 26021467,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 24,
+          "invest": 14040113,
+          "safe": 12705918,
+          "total": 26746031,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 25,
+          "invest": 14558515,
+          "safe": 13036865,
+          "total": 27595380,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 26,
+          "invest": 14413367,
+          "safe": 13368617,
+          "total": 27781984,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 27,
+          "invest": 14484205,
+          "safe": 13701177,
+          "total": 28185382,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 28,
+          "invest": 15361605,
+          "safe": 14034548,
+          "total": 29396153,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 29,
+          "invest": 16367779,
+          "safe": 14368730,
+          "total": 30736509,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 30,
+          "invest": 17459638,
+          "safe": 14703726,
+          "total": 32163364,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 31,
+          "invest": 18717592,
+          "safe": 15039538,
+          "total": 33757130,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 32,
+          "invest": 19815015,
+          "safe": 15376168,
+          "total": 35191183,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 33,
+          "invest": 19766343,
+          "safe": 15713618,
+          "total": 35479961,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 34,
+          "invest": 21032828,
+          "safe": 16051890,
+          "total": 37084718,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 35,
+          "invest": 22275622,
+          "safe": 16390985,
+          "total": 38666607,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 36,
+          "invest": 22770557,
+          "safe": 16730907,
+          "total": 39501464,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 37,
+          "invest": 22772744,
+          "safe": 17071657,
+          "total": 39844401,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 38,
+          "invest": 23277547,
+          "safe": 17413236,
+          "total": 40690783,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 39,
+          "invest": 24483315,
+          "safe": 17755647,
+          "total": 42238962,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 40,
+          "invest": 26456990,
+          "safe": 18098893,
+          "total": 44555883,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 41,
+          "invest": 27514330,
+          "safe": 18442974,
+          "total": 45957304,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 42,
+          "invest": 27847741,
+          "safe": 18787893,
+          "total": 46635634,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 43,
+          "invest": 27914918,
+          "safe": 19133653,
+          "total": 47048571,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 44,
+          "invest": 27151918,
+          "safe": 19480254,
+          "total": 46632172,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 45,
+          "invest": 26702437,
+          "safe": 19827700,
+          "total": 46530137,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 46,
+          "invest": 27553859,
+          "safe": 20175992,
+          "total": 47729851,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 47,
+          "invest": 28745316,
+          "safe": 20525132,
+          "total": 49270448,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 48,
+          "invest": 30281744,
+          "safe": 20875123,
+          "total": 51156867,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 49,
+          "invest": 31330339,
+          "safe": 21225966,
+          "total": 52556305,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 50,
+          "invest": 33063966,
+          "safe": 21577663,
+          "total": 54641629,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 51,
+          "invest": 34658967,
+          "safe": 21930217,
+          "total": 56589184,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 52,
+          "invest": 36041452,
+          "safe": 22283630,
+          "total": 58325082,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 53,
+          "invest": 35633768,
+          "safe": 22637904,
+          "total": 58271672,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 54,
+          "invest": 36259705,
+          "safe": 22993040,
+          "total": 59252745,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 55,
+          "invest": 36183222,
+          "safe": 23349041,
+          "total": 59532263,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 56,
+          "invest": 36842973,
+          "safe": 23705910,
+          "total": 60548883,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 57,
+          "invest": 40009833,
+          "safe": 24063648,
+          "total": 64073481,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 58,
+          "invest": 43262617,
+          "safe": 24422256,
+          "total": 67684873,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 59,
+          "invest": 44132311,
+          "safe": 24781739,
+          "total": 68914050,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 60,
+          "invest": 41572128,
+          "safe": 25142097,
+          "total": 66714225,
+          "contribution": 600000,
+          "cash_residual": 0
+        }
+      ],
+      "cum_cost": 11500,
+      "risk": {
+        "mdd_pct": 3.19,
+        "vol_annual_pct": 13.66,
+        "worst_month_pct": -10.31,
+        "max_drift_pct": 0.0
+      },
+      "gap": {
+        "fv_total": 66714225,
+        "shortfall": -6714225,
+        "extra_monthly_required": 0,
+        "months_extension": 0,
+        "months_extension_raw": 0,
+        "extension_status": "OK",
+        "extra_monthly_ratio": null,
+        "status": "already_met",
+        "basis": "pre_tax"
+      }
+    },
+    "H": {
+      "trajectory": [
+        {
+          "month": 1,
+          "invest": 5522323,
+          "safe": 5312178,
+          "total": 10834501,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 2,
+          "invest": 5657495,
+          "safe": 5625116,
+          "total": 11282611,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 3,
+          "invest": 6286846,
+          "safe": 5938817,
+          "total": 12225663,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 4,
+          "invest": 6651680,
+          "safe": 6253281,
+          "total": 12904961,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 5,
+          "invest": 7213087,
+          "safe": 6568511,
+          "total": 13781598,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 6,
+          "invest": 7229915,
+          "safe": 6884510,
+          "total": 14114425,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 7,
+          "invest": 7318110,
+          "safe": 7201277,
+          "total": 14519387,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 8,
+          "invest": 7944187,
+          "safe": 7518817,
+          "total": 15463004,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 9,
+          "invest": 7897520,
+          "safe": 7837129,
+          "total": 15734649,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 10,
+          "invest": 8068039,
+          "safe": 8156217,
+          "total": 16224256,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 11,
+          "invest": 7982471,
+          "safe": 8476082,
+          "total": 16458553,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 12,
+          "invest": 9092250,
+          "safe": 8796727,
+          "total": 17888977,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 13,
+          "invest": 9312049,
+          "safe": 9118152,
+          "total": 18430201,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 14,
+          "invest": 9298564,
+          "safe": 9440360,
+          "total": 18738924,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 15,
+          "invest": 10245544,
+          "safe": 9763352,
+          "total": 20008896,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 16,
+          "invest": 10445919,
+          "safe": 10087132,
+          "total": 20533051,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 17,
+          "invest": 9669153,
+          "safe": 10411700,
+          "total": 20080853,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 18,
+          "invest": 10264041,
+          "safe": 10737058,
+          "total": 21001099,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 19,
+          "invest": 11028156,
+          "safe": 11063209,
+          "total": 22091365,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 20,
+          "invest": 11618839,
+          "safe": 11390155,
+          "total": 23008994,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 21,
+          "invest": 12431141,
+          "safe": 11717896,
+          "total": 24149037,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 22,
+          "invest": 12623405,
+          "safe": 12046436,
+          "total": 24669841,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 23,
+          "invest": 13645691,
+          "safe": 12375776,
+          "total": 26021467,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 24,
+          "invest": 14040113,
+          "safe": 12705918,
+          "total": 26746031,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 25,
+          "invest": 14558515,
+          "safe": 13036865,
+          "total": 27595380,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 26,
+          "invest": 14413367,
+          "safe": 13368617,
+          "total": 27781984,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 27,
+          "invest": 14484205,
+          "safe": 13701177,
+          "total": 28185382,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 28,
+          "invest": 15361605,
+          "safe": 14034548,
+          "total": 29396153,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 29,
+          "invest": 16367779,
+          "safe": 14368730,
+          "total": 30736509,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 30,
+          "invest": 17459638,
+          "safe": 14703726,
+          "total": 32163364,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 31,
+          "invest": 18717592,
+          "safe": 15039538,
+          "total": 33757130,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 32,
+          "invest": 19815015,
+          "safe": 15376168,
+          "total": 35191183,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 33,
+          "invest": 19766343,
+          "safe": 15713618,
+          "total": 35479961,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 34,
+          "invest": 21032828,
+          "safe": 16051890,
+          "total": 37084718,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 35,
+          "invest": 22275622,
+          "safe": 16390985,
+          "total": 38666607,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 36,
+          "invest": 22770557,
+          "safe": 16730907,
+          "total": 39501464,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 37,
+          "invest": 22772744,
+          "safe": 17071657,
+          "total": 39844401,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 38,
+          "invest": 23277547,
+          "safe": 17413236,
+          "total": 40690783,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 39,
+          "invest": 24483315,
+          "safe": 17755647,
+          "total": 42238962,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 40,
+          "invest": 26456990,
+          "safe": 18098893,
+          "total": 44555883,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 41,
+          "invest": 27514330,
+          "safe": 18442974,
+          "total": 45957304,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 42,
+          "invest": 27847741,
+          "safe": 18787893,
+          "total": 46635634,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 43,
+          "invest": 27914918,
+          "safe": 19133653,
+          "total": 47048571,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 44,
+          "invest": 27151918,
+          "safe": 19480254,
+          "total": 46632172,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 45,
+          "invest": 26702437,
+          "safe": 19827700,
+          "total": 46530137,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 46,
+          "invest": 27553859,
+          "safe": 20175992,
+          "total": 47729851,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 47,
+          "invest": 28745316,
+          "safe": 20525132,
+          "total": 49270448,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 48,
+          "invest": 30281744,
+          "safe": 20875123,
+          "total": 51156867,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 49,
+          "invest": 31330339,
+          "safe": 21225966,
+          "total": 52556305,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 50,
+          "invest": 33063966,
+          "safe": 21577663,
+          "total": 54641629,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 51,
+          "invest": 34658967,
+          "safe": 21930217,
+          "total": 56589184,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 52,
+          "invest": 36041452,
+          "safe": 22283630,
+          "total": 58325082,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 53,
+          "invest": 35633768,
+          "safe": 22637904,
+          "total": 58271672,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 54,
+          "invest": 36259705,
+          "safe": 22993040,
+          "total": 59252745,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 55,
+          "invest": 36183222,
+          "safe": 23349041,
+          "total": 59532263,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 56,
+          "invest": 36842973,
+          "safe": 23705910,
+          "total": 60548883,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 57,
+          "invest": 40009833,
+          "safe": 24063648,
+          "total": 64073481,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 58,
+          "invest": 43262617,
+          "safe": 24422256,
+          "total": 67684873,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 59,
+          "invest": 44132311,
+          "safe": 24781739,
+          "total": 68914050,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 60,
+          "invest": 41572128,
+          "safe": 25142097,
+          "total": 66714225,
+          "contribution": 600000,
+          "cash_residual": 0
+        }
+      ],
+      "cum_cost": 11500,
+      "risk": {
+        "mdd_pct": 3.19,
+        "vol_annual_pct": 13.66,
+        "worst_month_pct": -10.31,
+        "max_drift_pct": 0.0
+      },
+      "gap": {
+        "fv_total": 66714225,
+        "shortfall": -6714225,
+        "extra_monthly_required": 0,
+        "months_extension": 0,
+        "months_extension_raw": 0,
+        "extension_status": "OK",
+        "extra_monthly_ratio": null,
+        "status": "already_met",
+        "basis": "pre_tax"
+      }
+    }
+  },
+  "focus": "Q",
+  "goal_amount": 60000000
+}

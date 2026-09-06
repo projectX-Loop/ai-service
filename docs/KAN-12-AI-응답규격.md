@@ -1,6 +1,9 @@
 # KAN-12 — AI 설명 응답 규격 및 안전 가드레일
 
-> 담당 성종현 · 후속 KAN-4, KAN-13 · 기준 KAN-9 계약 초안
+> 담당 성종현 · 후속 KAN-4, KAN-13 · 기준 노션 Kan-9 v0.2 §5(입력)·§7(출력) — 9/2 밤 정렬, 9/3 도윤 "v0.2 단일 실행 기준" 확정
+> **상태 (2026-09-03 오후)**: 산출물 4/4 · 수용기준 4/4 · KAN-9 §5·§7 정렬 · 테스트 통과. 도윤 카톡 — 성종현 작업 중 block 걸린 항목을 도윤이 옮겼고(Jira 14:43 검토 중), 도윤 측 AI 검토 결과 **KAN-12를 완료로 바꿔도 된다**고 함. Jira 상태 변경은 성종현 본인 계정으로. 남은 「확정 대기」(문서 끝)는 완료 전환을 막지 않는다.
+> **9/4 승준 KAN-12 변경점(2026-09-03) 반영**: 입력 스키마에 `gap` 6필드·`cashflow`·`meta.options` 추가(골든 P0 실측, 도윤 노션 계약 정리 §0 "반영 ①"). 프롬프트에 연장 분기·주기 서술 규칙(§6.2 개정 ⑦)·자산 표기·금지 6·필수 4 추가. 가드레일 C5 확장 + C14 자동 부분 + C16·C17·C18 신설. `cashflow.profile`은 **스키마에서 일부러 제외**(원자료 인용 차단). 픽스처는 골든 P0 v0.3 출력으로 교체. 테스트 27.
+> **9/3 밤 실호출 반영**: 프롬프트 [수치 인용 규칙]에 evidence 형식·반올림 금지 2항 추가(실호출 반려 원인). `retrieved_refs`는 `chunk:` 접두어 없는 `<source_id>#<idx>`(KAN-17 예시와 통일). 실측은 docs/KAN-17 「실측」.
 
 ## 목적
 
@@ -30,8 +33,8 @@ AI가 숫자를 말할 때마다 그 값이 입력 JSON의 어느 경로에서 �
 
 | 말하는 것 | 출처 | `evidence` 표기 |
 |---|---|---|
-| **수치·상태** | 시뮬레이션 결과 JSON **에서만** | `/results/1/goal_gap` |
-| **개념·가정 설명** | 검색된 지식 청크 **에서만** | `chunk:<청크 id>` |
+| **수치·상태** | 시뮬레이션 결과 JSON **에서만** | `/per_period/Q/gap/shortfall` |
+| **개념·가정 설명** | 검색된 지식 청크 **에서만** | `chunk:<source_id>#<idx>` |
 
 KAN-15 목적 문장이 이 경계를 그대로 정의한다 —
 "AI 설명에서 개념·가정 설명은 RAG가 담당한다(숫자·상태는 시뮬레이터 결과에서만 인용)."
@@ -54,83 +57,37 @@ PRD 기능1의 입력 중 **초기 투자금과 자산 비중은 의도적으로
 
 ---
 
-## 산출물 ②-1 입력 스키마 (시뮬레이터 → AI)
+## 산출물 ②-1 입력 스키마 (시뮬레이터 → AI) — KAN-9 §5 정렬본
 
-KAN-11 시뮬레이터의 출력이 그대로 AI의 입력이 된다.
+**2026-09-02 밤 재작성.** 이전 스키마는 KAN-9 확정 전 추정 모양이었고, 실제 KAN-11 출력을 넣으면
+파싱에서 거부됐다. 아래가 KAN-9 §5(v0.2 확정 기준)와 KAN-11 구현이 실제로 내는 모양이다.
 
-**AI가 사용할 수 있는 정보는 두 가지뿐이다.**
-1. **이 시뮬레이션 결과 JSON** — 모든 수치·상태의 유일한 출처
-2. **검색된 지식 청크** (KAN-15·16) — 개념·가정 설명의 유일한 출처
-
-**그 밖은 전부 금지한다.** 시장 전망, 상품 정보, 학습 데이터에서 온 수치 모두.
-**특히 지식 청크는 수치의 출처가 될 수 없다.** 청크는 "최대낙폭이란 무엇인가"를 설명할 뿐,
-"최대낙폭이 얼마인가"는 오직 이 JSON에서만 온다.
-
-> 이 문서는 원래 "AI는 이 JSON 바깥의 어떤 정보도 사용하지 않는다"였다. RAG가 9/7 범위로
-> 확정(2026-09-02)되면서 위와 같이 두 출처 체계로 고쳤다.
+`POST /rag/answer` 요청 본문 = **KAN-11 `analyze()` 출력 전체 + `focus` + `goal_amount`**.
 
 ```json
 {
+  "status": "OK",
   "meta": {
-    "data_period": { "start": "2019-07-01", "end": "2026-06-30" },
-    "assumptions": [
-      "배당 재투자 가정",
-      "거래비용 편도 0.015% 반영",
-      "세금 미반영"
-    ],
-    "asset_universe": "사전 정의 ETF 3종 + 현금성 1종",
-    "generated_at": "2026-09-02"
+    "assumptions_version": "v0.2",
+    "data_version": "2026-09-02", "data_hash": "sha256:fa84100c…",
+    "window": { "start": "2021-08", "end": "2026-07", "months": 60 },
+    "assets_used": [ { "code": "KR_EQ", "display_name": "국내 주식 (KODEX 200)", "instrument": "069500" } ],
+    "data_basis": "실제 월간 총수익률 재생 · 기준 구간 2021-08~2026-07 · 환노출(무헤지)",
+    "safe_rate_annual_pct": 2.962167,
+    "generated_at": "2026-09-02T00:00:00Z",
+    "warnings": []
   },
-
-  "user_profile": {
-    "goal_amount":          50000000,
-    "goal_period_months":         60,
-    "initial_investment":   10000000,
-    "monthly_contribution":   500000,
-    "risk_profile": "MODERATE"
+  "derived": { "propensity_label": "중립형", "invest_share_overall_pct": 54.35, "plan_excluded_amount": 3600000 },
+  "per_period": {
+    "M": { "trajectory": [ { "month": 60, "total": 70662655 } ],
+           "cum_cost": 39878,
+           "risk": { "mdd_pct": 7.63, "vol_annual_pct": 17.72, "max_drift_pct": 12.25 },
+           "gap":  { "fv_total": 70662655, "shortfall": -20662655, "extra_monthly_required": 0, "months_extension": 0 } },
+    "Q": { "…": "동일 구조" },
+    "H": { "…": "동일 구조" }
   },
-
-  "portfolio": {
-    "target_weights": [
-      { "asset": "DOMESTIC_EQUITY", "weight": 0.50 },
-      { "asset": "FOREIGN_EQUITY",  "weight": 0.30 },
-      { "asset": "BOND",            "weight": 0.20 }
-    ]
-  },
-
-  "selected_frequency": "QUARTERLY",
-
-  "results": [
-    {
-      "frequency":       "MONTHLY",
-      "final_value":     46820000,
-      "goal_gap":        -3180000,
-      "goal_gap_rate":     -0.0636,
-      "additional_monthly_required": 51000,
-      "expected_months_to_goal":        66,
-      "cumulative_cost":   680000,
-      "trade_count":           60,
-      "risk_metrics": {
-        "annual_volatility":  0.142,
-        "max_drawdown":      -0.238
-      },
-      "value_series": [
-        { "date": "2021-09-30", "value": 13850000 }
-      ]
-    },
-
-    { "frequency": "QUARTERLY",
-      "final_value": 47150000, "goal_gap": -2850000, "goal_gap_rate": -0.0570,
-      "additional_monthly_required": 45000, "expected_months_to_goal": 65,
-      "cumulative_cost": 245000, "trade_count": 20,
-      "risk_metrics": { "annual_volatility": 0.145, "max_drawdown": -0.251 } },
-
-    { "frequency": "SEMIANNUAL",
-      "final_value": 46690000, "goal_gap": -3310000, "goal_gap_rate": -0.0662,
-      "additional_monthly_required": 53000, "expected_months_to_goal": 67,
-      "cumulative_cost": 128000, "trade_count": 10,
-      "risk_metrics": { "annual_volatility": 0.151, "max_drawdown": -0.267 } }
-  ]
+  "focus": "Q",
+  "goal_amount": 50000000
 }
 ```
 
@@ -138,125 +95,157 @@ KAN-11 시뮬레이터의 출력이 그대로 AI의 입력이 된다.
 
 | 필드 | 의미 | 비고 |
 |---|---|---|
-| `goal_gap` | 목표 대비 부족액. 음수 = 미달 | PRD가 요구한 "부족액" |
-| `additional_monthly_required` | 목표 달성에 필요한 추가 월 납입액 | **KAN-9·KAN-11 결과 목록에 있음.** 일치 확인 (2026-09-02) |
-| `expected_months_to_goal` | 현재 계획 유지 시 목표 도달까지 걸리는 개월 | **KAN-9·KAN-11 어디에도 없음.** PRD "예상 기간" 근거로 반영 요청 필요 |
-| `portfolio.target_weights` | 자산 목표 비중 (최대 3개, 합계 1.00) | **티켓 AI 입력 목록에 없음.** KAN-4·PRD 기능1 근거로 추가 |
-| `target_weights[].asset` | 자산군 **코드**. KAN-4 유니버스 표와 동일 | PRD 자산 범위에 따라 예금은 `CASH_DEPOSIT`(현금성·무위험)으로 유니버스에 포함된다. 한글 라벨 매핑은 프론트 몫이라 AI는 코드만 받는다 |
-| `selected_frequency` | 사용자가 강조 선택한 주기 | KAN-9 v0.3의 **`rebalancing.focus`와 같은 개념**(M/Q/H). 세 주기 모두 계산은 유지 |
-| `value_series` | 자산 추이. **분기 말 스냅샷으로 요약해 전달** | 전체 시계열은 토큰만 늘리고 인용 오류를 키운다 |
+| `meta.window` | 기준 구간. **summary·assumptions_note에 반드시 언급** (KAN-9 규칙 6) | 옛 `data_period` 대체 |
+| `meta.data_basis` | 가정 요약 **문장 하나** | 옛 `assumptions[]` 배열 대체. C8이 이걸 대조 |
+| `derived.propensity_label` | 안정형/중립형/공격형. **배분율에서 파생** (KAN-9 확정 ⑨) | 옛 `risk_profile` 입력 대체. 성향은 입력받지 않는다 |
+| `per_period.{M,Q,H}` | 주기별 결과. 키가 주기 | 옛 `results[]` + `frequency` 대체 |
+| `gap.shortfall` | goal − FV. **양수 = 부족, 음수 = 초과** | 옛 `goal_gap`과 **부호 반대** |
+| `gap.extra_monthly_required` | ΔM. `null`이면 산출 불가 | 옛 `additional_monthly_required` |
+| `gap.months_extension` | 납입 유지 시 도달까지 **추가** 개월. 재제출 가능한 값일 때만, 아니면 `null` | 옛 `expected_months_to_goal`(절대 개월)과 의미 다름 |
+| `gap.extension_status` | `OK` / `BEYOND_INPUT_LIMIT` / `BEYOND_DATA_WINDOW` / `SERIES_NOT_AVAILABLE`. **연장 서술은 이걸로 분기** | 승준 변경점 A(9/3). C16이 대조. 옛날엔 `null` 하나로 뭉개짐 |
+| `gap.months_extension_raw` | 자르기 전 n′−n. `BEYOND_INPUT_LIMIT`일 때 인용용 | **이 값을 입력하라고 권유 금지** (재제출 시 `GOAL_HORIZON_RANGE`) |
+| `gap.status` / `basis` / `extra_monthly_ratio` | `already_met`·`exact`·`short`·`unreachable` / `pre_tax`·`after_tax` / ΔM ÷ 여유자금 | ratio > 1이면 ΔM 단독 제시 금지. 상수 경로(v0.2)는 ratio `null` |
+| `cashflow` | `monthly_contribution[n]`·`months_zero`·`emergency_filled_month`·`bonus_share_pct`·`surplus_headroom` 등 파생값만 | **`profile`(소득·지출 원자료)은 스키마에서 제외** — AI에게 안 보이고 인용하면 C3 |
+| `meta.options` / `start_month` / `target_month` / `assets_used[].tax_class` | 옵션(세금·예금금리·1주 단위) · 시작·목표월 · 과세 구분 | `assumptions_note` 분기 근거 |
+| `risk.mdd_pct` | 최대 낙폭, **양수 %** (7.63 = 7.63%) | 옛 `max_drawdown`(−0.238 소수) |
+| `risk.vol_annual_pct` / `max_drift_pct` / `worst_month_pct` | 실현 변동성 / 최대 이탈 / 최악 월 | KAN-11 4종. 샤프비율 없음 |
+| `focus` | 강조할 주기 M/Q/H. **KAN-9 §5 출력에 없어 backend가 함께 넘긴다** | PRD 수용기준 4. 없으면 C10 WARN |
+| `goal_amount` | 목표 금액. **§5 출력에 없어 backend가 함께 넘긴다** | 없으면 AI가 "목표 5,000만원"을 말할 근거가 없다 |
 
-`risk_metrics`는 **연환산 변동성과 최대 낙폭 2종뿐이다.** KAN-11 티켓이 반환 필드로 이 둘만
-명시하고 있어 2026-09-02에 샤프비율을 제거했다. **여기 없는 지표는 AI가 언급할 수 없다.**
+**AI가 사용할 수 있는 정보는 두 가지뿐이다** — (1) 이 JSON, (2) 검색된 지식 청크(개념 설명 전용,
+수치 출처 불가). 그 밖은 전부 금지.
 
----
+**프롬프트에 넣는 JSON은 두 군데만 줄인다** (`prompt.prompt_payload`, 9/4): `trajectory`는 마지막 행(만기)만,
+`cashflow.monthly_contribution` 배열은 제외. 골든 전체를 넣으면 28k자(≈1만 토큰)라 지연·비용이 3배가 된다.
+가드레일 C3·C4는 **원본 전체**로 대조하므로 AI가 궤적 중간 행을 인용하면 실존 검사는 통과하되, 보지 못한 값이라
+인용할 일이 없다. 만기 `total` = `gap.fv_total`이므로 정보 손실은 없다.
 
-## 산출물 ②-2 출력 스키마 (AI → 화면)
+## 산출물 ②-2 출력 스키마 (AI → 화면) — KAN-9 §7 정렬본
 
-티켓의 출력 항목 6개가 각각 필드 하나에 대응한다. `minItems` 제약 덕분에 "위험 요인 1개
-이상", "다음 행동 1개 이상"이 스키마 수준에서 보장된다.
+KAN-9 §7 「AI 설명 계약」의 필드 5개를 그대로 쓰고, KAN-12가 `evidence`·`highlighted_period`·
+`retrieved_refs` 세 개를 더한다.
 
 ```json
 {
-  "highlighted_frequency": "QUARTERLY",   // 입력 selected_frequency를 그대로 에코
-                                          // PRD 수용기준 4 "선택된 리밸런싱 주기 포함"
-
-  "summary": {
-    "text": "세 주기 모두 목표에 못 미치며, 분기별이 285만원 차이로 가장 근접합니다.",
-    "evidence": ["/results/1/goal_gap"]
+  "summary":       { "text": "2021-08~2026-07 시장이 그대로 반복된다면 분기별 …", "evidence": ["/meta/window/start", "/per_period/Q/gap/fv_total", "/goal_amount"] },
+  "per_period_pros_cons": {
+    "M": { "pros": [ {"text": "…", "evidence": ["/per_period/M/risk/max_drift_pct"]} ],
+           "cons": [ {"text": "…", "evidence": ["/per_period/M/cum_cost"]} ] },
+    "Q": { "…": "각 주기 장점 ≥1 · 단점 ≥1" }, "H": { }
   },
-
-  "goal_gap": {
-    "text": "목표 5,000만원 대비 분기별 리밸런싱은 4,715만원으로 285만원(5.7%) 부족합니다. 월 납입액을 4만 5천원 늘리면 이 차이를 메울 수 있습니다.",
-    "evidence": ["/user_profile/goal_amount",
-                 "/results/1/final_value",
-                 "/results/1/goal_gap",
-                 "/results/1/additional_monthly_required"]
-  },
-
-  "frequency_comparison": [
-    {
-      "frequency":   "MONTHLY",
-      "observation": "누적 거래비용 68만원으로 가장 높습니다.",
-      "tradeoff":    "대신 최대낙폭 -23.8%로 세 주기 중 가장 작습니다.",
-      "evidence": ["/results/0/cumulative_cost",
-                   "/results/0/risk_metrics/max_drawdown"]
-    }
-  ],
-
-  "risk_factors": [
-    {
-      "title":  "최대낙폭 구간의 심리적 부담",
-      "detail": "분기별 기준 투자 기간 중 자산이 -25.1%까지 줄어든 시점이 있었습니다.",
-      "evidence": ["/results/1/risk_metrics/max_drawdown"]
-    }
-  ],
-
-  "next_actions": [
-    {
-      "adjustable_input": "MONTHLY_CONTRIBUTION",
-      "text": "월 납입액을 4만 5천원 늘린 조건으로 다시 계산해볼 수 있습니다.",
-      "evidence": ["/user_profile/monthly_contribution",
-                   "/results/1/additional_monthly_required"]
-    }
-  ],
-
-  "data_basis": {
-    "period": "2019-07-01 ~ 2026-06-30",
-    "assumptions": ["배당 재투자 가정", "거래비용 편도 0.015% 반영", "세금 미반영"],
-    "disclaimer": "과거 데이터 기반 시뮬레이션 결과이며 미래 수익을 보장하지 않습니다. 투자 자문이 아닙니다."
-  }
+  "risks":        [ { "title": "…", "detail": "…", "evidence": ["/per_period/Q/risk/mdd_pct"] } ],
+  "next_actions": [ { "adjustable_input": "GOAL_AMOUNT", "text": "…", "evidence": ["/per_period/Q/gap/shortfall"] } ],
+  "assumptions_note": { "text": "기준 구간 2021-08~2026-07 … 환노출(무헤지) …", "evidence": ["/meta/window/start", "/meta/data_basis"] },
+  "highlighted_period": "Q",
+  "retrieved_refs": []
 }
 ```
 
-### 스키마 제약이 막는 것
+| KAN-9 §7 요건 | 필드 | 스키마 제약 | 검증 |
+|---|---|---|---|
+| summary 2~3문장, **기준 구간 반드시 언급** | `summary` | 필수 | C11 |
+| 각 주기 장점≥1·단점≥1, 비교 축 비용·이탈·MDD | `per_period_pros_cons` | `pros`·`cons` minItems 1 | C6 (M·Q·H 전부) |
+| risks ≥1, **MDD 1순위** | `risks` | minItems 1 | C7 |
+| next_actions ≥1, 조정 가능한 입력만 | `next_actions` | `adjustable_input` enum 6종 | C9 |
+| assumptions_note 기준 구간 + 환노출 | `assumptions_note` | 필수 | C8 |
+| — (KAN-12 추가) | `evidence` | 모든 문장 필수. JSON Pointer 또는 `chunk:<source_id>#<idx>` | C2·C3·C4·C13 |
+| — (PRD 수용기준 4) | `highlighted_period` | 입력 `focus` 에코, 없으면 null | C10 |
+| — (KAN-17) | `retrieved_refs` | 문장별 chunk evidence의 합집합 | C3 |
 
-| 필드 | 제약 | 막는 것 |
-|---|---|---|
-| `evidence` | 모든 텍스트 필드에 필수. JSON Pointer 배열 | 계산 결과에 없는 수치 인용 |
-| `adjustable_input` | `MONTHLY_CONTRIBUTION` \| `GOAL_PERIOD` \| `GOAL_AMOUNT` \| `REBALANCING_FREQUENCY` | 특정 상품 매수·매도 권유 |
-| `frequency_comparison` | 정확히 3개. 우열 판정 필드 없음 | AI의 독자적 투자 판단 |
-| `risk_factors` | minItems 1 | 위험 누락한 낙관적 설명 |
-| `next_actions` | minItems 1 | 행동 없는 진단만 제시 |
-| `data_basis` | 필수. `meta`에서 그대로 복사 | 가정·유의 문구 누락 |
-| `highlighted_frequency` | 필수. 입력 `selected_frequency`와 일치 | 선택한 주기를 설명에서 빠뜨리는 것 |
+`adjustable_input` 6종: `MONTHLY_CONTRIBUTION` · `GOAL_HORIZON` · `GOAL_AMOUNT` · `ALLOC_MONTHLY` ·
+`ALLOC_INITIAL` · `REBALANCING_FOCUS` — KAN-9 §2 입력 필드 그대로. **포트폴리오 비중 조정은 뺐다**
+(권유하는 순간 투자자문).
 
-**확률 필드는 스키마에 존재하지 않는다.** PRD의 Not To Do("목표 달성 가능성을 %로 보여주지
-않는다")를 필드 부재로 강제한다.
-
----
+**확률 필드는 스키마에 존재하지 않는다.** PRD Not To Do를 필드 부재로 강제한다.
 
 ## 산출물 ① 시스템 프롬프트 초안
 
-스키마가 형식을 강제하고, 프롬프트는 어조와 판단의 경계를 담당한다.
+스키마가 형식을 강제하고, 프롬프트는 어조와 판단의 경계를 담당한다. **`explainer/prompt.py`와 글자 단위로 동일**하다.
 
 ```
 당신은 포트폴리오 리밸런싱 시뮬레이션 결과를 사용자에게 설명하는 역할입니다.
 당신은 투자 판단을 내리지 않습니다. 주어진 계산 결과를 해석해 전달하는 것이 전부입니다.
 
 [사용 가능한 정보]
-입력으로 받은 JSON에 있는 값만 사용합니다. 당신이 알고 있는 시장 정보, 상품 정보,
-과거 수익률, 경제 전망은 어떤 경우에도 답변에 등장해서는 안 됩니다.
+수치와 상태는 입력으로 받은 시뮬레이션 결과 JSON에 있는 값만 사용합니다.
+개념·가정 설명은 함께 제공된 지식 청크가 있을 때 그것만 근거로 씁니다. 청크는 "무엇인가"를
+설명할 뿐이며, 청크에 있는 숫자를 인용해서는 안 됩니다. 숫자는 오직 결과 JSON에서만 옵니다.
+당신이 알고 있는 시장 정보, 상품 정보, 과거 수익률, 경제 전망은 어떤 경우에도 등장해서는 안 됩니다.
 입력에 없는 값이 필요하면 "제공된 분석 결과로는 알 수 없습니다"라고 답합니다.
+
+[결과는 예측이 아니라 재현입니다]
+이 결과는 meta.window의 과거 구간 시장이 그대로 반복된다고 가정하고 같은 계획을 재생한 것입니다.
+금액을 말할 때는 반드시 그 조건을 붙입니다.
+  금지: "5년 뒤 7,066만원이 됩니다"
+  허용: "2021-08~2026-07 시장이 그대로 반복된다면 만기 총자산은 7,066만원입니다"
+summary와 assumptions_note에는 기준 구간(meta.window의 시작~끝)을 반드시 적습니다.
 
 [수치 인용 규칙]
 숫자를 언급할 때마다 그 값의 JSON Pointer 경로를 evidence에 기록합니다.
+  예: /per_period/Q/gap/shortfall, /per_period/M/risk/mdd_pct, /meta/window/start
+evidence의 각 항목은 JSON Pointer 하나 또는 chunk:<source_id>#<idx> 하나만 적습니다.
+경로는 반드시 /로 시작하고, 경로 뒤에 설명·공백·다른 문자를 붙이지 마십시오.
+  금지: "/meta/window/start 기준 구간", "meta/window/end"
+  허용: "/meta/window/start"
 evidence에 근거를 댈 수 없는 숫자는 문장에서 빼십시오.
-금액은 만원 단위까지, 비율은 소수점 첫째 자리까지만 표기합니다.
+금액과 비율은 입력 값을 그대로 씁니다. 반올림하지 마십시오.
+  100만원 이상 금액만 만원 단위로 줄일 수 있습니다 (70,662,655원 → "7,066만원").
+  그 미만은 원 단위 그대로 씁니다 (26,310원 → "26,310원". "3만원"은 금지).
+  비율은 입력에 있는 소수점 그대로 씁니다 (7.63%).
 덧셈, 뺄셈, 평균, 비율을 직접 계산하지 마십시오. 입력에 있는 값을 그대로 인용합니다.
-납입액 조정을 제안할 때는 조정 후 금액을 계산하지 말고, additional_monthly_required를
-그대로 써서 "월 OO원 늘리면"처럼 증감분으로만 표현합니다.
+gap.shortfall이 양수면 부족액, 음수면 초과 달성액입니다. 부호를 바꿔 계산하지 말고
+"부족" 또는 "초과"라는 말로 표현합니다.
+납입액 조정을 제안할 때는 조정 후 금액을 계산하지 말고, gap.extra_monthly_required를
+그대로 써서 "월 OO원 늘리면"처럼 증감분으로만 표현합니다. null이면 언급하지 않습니다.
+gap.extra_monthly_ratio가 1을 넘으면 그 증액은 여유자금을 넘습니다. 증액만 단독으로 제시하지 말고
+기간 연장·목표 조정과 함께 제시합니다. 실행 가능성이 낮다고 말하되 훈계하지 않습니다.
+
+[간극·연장 서술]
+gap.status로 상황을 읽습니다. already_met은 초과 달성, exact는 정확히 도달, short는 부족,
+unreachable은 기간·금액 두 축 모두 범위 밖입니다. 초과 달성이면 위험 지표를 경고로 바꿔 말하지 않습니다.
+기간 연장은 gap.extension_status로 분기합니다.
+  OK: gap.months_extension을 인용해 "N개월 더 납입하면 도달합니다"
+  BEYOND_INPUT_LIMIT: gap.months_extension_raw를 인용해 "데이터상 N개월이면 도달하나 입력 가능 범위
+    (12~120개월)를 넘습니다". 그 값을 입력하라고 권유하지 않습니다.
+  BEYOND_DATA_WINDOW: "보유 데이터 구간 내에서는 목표 도달 시점을 확인할 수 없습니다"
+  SERIES_NOT_AVAILABLE: "이 옵션 조합에서는 연장 시점을 계산할 수 없습니다"
+  months_extension이 null인데 개월 수를 말하지 않습니다.
+cashflow 블록이 있으면 monthly_contribution과 파생 지표(months_zero, emergency_filled_month,
+bonus_share_pct, surplus_headroom)만 인용합니다. 소득·지출 원자료는 입력에 없으며 만들어 말하지 않습니다.
+bonus_share_pct가 30 이상이면 "상여월 시장 상황에 결과가 민감하다"고 말할 수 있습니다.
 
 [주기 비교 규칙]
-세 가지 리밸런싱 주기를 모두 다루되, 어느 것이 더 낫다고 결론짓지 않습니다.
-각 주기마다 관찰된 사실(observation)과 그에 따르는 대가(tradeoff)를 한 쌍으로 제시하고,
-선택은 사용자에게 남깁니다.
-highlighted_frequency에는 입력의 selected_frequency를 그대로 적고, 그 주기를 summary와
-goal_gap에서 먼저 언급합니다. 다만 그것을 권장하지는 않습니다.
+M(월)·Q(분기)·H(반기) 세 주기 전부에 대해 장점 1개 이상과 단점 1개 이상을 씁니다.
+비교 축은 누적 비용(cum_cost), 최대 이탈(max_drift_pct), 최대 낙폭(mdd_pct)입니다.
+어느 주기가 더 낫다고 결론짓지 않습니다. 선택은 사용자에게 남깁니다.
+주기와 비용·이탈·낙폭의 관계를 일반 법칙처럼 말하지 않습니다. 세 값을 그대로 읽어 비교합니다.
+  허용: "리밸런싱 주기가 짧을수록 거래비용이 늘어납니다" (월 > 분기 범위에서만)
+  허용: "이 조건에서는 분기 26,310원, 반기 25,917원입니다. 이 관계는 목표 기간·초기 자금·납입 형태에
+        따라 달라집니다" (값을 인용할 때만)
+  금지: "반기 리밸런싱이 가장 저렴합니다", "월 리밸런싱은 비용이 가장 큽니다" 같은 값 없는 고정 문구
+  금지: "자주 리밸런싱하면 이탈이 항상 작습니다", "자주 리밸런싱하면 낙폭(위험)이 줄어듭니다"
+세 주기의 fv_total과 cum_cost가 전부 같으면 리밸런싱할 상대 자산이 없는 경우입니다.
+그때는 주기 차이를 서술하지 말고 "주기를 바꿔도 결과가 같습니다"라고만 씁니다.
+입력에 focus가 있으면 highlighted_period에 그대로 적고, 그 주기를 summary에서 먼저 언급합니다.
+다만 그것을 권장하지는 않습니다. focus가 없으면 highlighted_period는 null입니다.
+
+[위험 규칙]
+risks는 1개 이상이며, 최대 낙폭(mdd_pct)을 첫 번째로 다룹니다.
+지표를 금액으로 환산하지 마십시오. 입력에 있는 % 값을 그대로 인용합니다.
+vol_annual_pct(연환산 변동성)는 목표 비중 포트폴리오 기준이라 투자 비중이 낮아도 그대로 나옵니다.
+단독으로 인용하지 말고 mdd_pct나 worst_month_pct와 함께 씁니다.
+분산 투자나 채권 편입이 위험을 낮췄다고 말하지 않습니다. 이 기준 구간에서는 사실과 다를 수 있습니다.
+자산별 사실은 입력 값으로만 말합니다.
+
+[자산 표기]
+자산은 meta.assets_used의 display_name으로 부릅니다. "국내 주식"이 아니라 "KODEX 200"입니다.
+"국내 주식 수익률이 높았다"처럼 자산군으로 일반화하지 않습니다.
+해외 자산(US_EQ 등)이 있으면 환노출(환율 변동이 원화 수익에 반영됨)을 반드시 한 문장 언급합니다.
+환율 덕분에 수익이 좋았다거나 환헤지가 유리하다는 식의 서술은 하지 않습니다.
 
 [다음 행동 규칙]
-사용자가 조정할 수 있는 것은 월 납입액, 목표 기간, 목표 금액, 리밸런싱 주기뿐입니다.
-종목·ETF·펀드·계좌 상품에 대한 언급은 금지합니다.
+사용자가 조정할 수 있는 것은 월 납입액, 목표 기간, 목표 금액, 초기·월 배분율(투자/안전/기타),
+리밸런싱 주기뿐입니다. 종목·ETF·펀드·계좌 상품·자산 비중 조정은 언급하지 않습니다.
 대출, 신용거래, 자동매매, 상품 가입을 제안하지 않습니다.
 
 [금지 표현]
@@ -264,15 +253,25 @@ goal_gap에서 먼저 언급합니다. 다만 그것을 권장하지는 않습�
 - 확정적 미래 서술 ("~할 것입니다", "예상 수익률은 8%입니다")
 - 특정 상품 권유 ("A ETF를 매수하세요")
 - 입력에 없는 수치, 시장 전망, 뉴스
+- derived.propensity_label(안정형/중립형/공격형)을 사람의 성격으로 확장 ("공격적인 분이시네요")
+- 사용자의 지출·소비 습관 평가·훈계 ("낭비가 많습니다")
+- 분산·채권 편입으로 위험이 줄었다는 서술 ("채권을 섞어 위험을 낮췄습니다")
+- 자산군 일반화 ("국내 주식 수익률이 높았습니다")
+- 환율·환헤지 우열 ("환율 덕분에", "환헤지가 유리합니다")
+- 값 없는 주기 고정 문구 ("반기가 가장 저렴합니다")
+- 세 주기 결과가 같을 때의 주기 우열 서술
+- 소득·지출 원자료 언급, 추가 납입액 단독 제시(여유자금 초과 시)
 
-[투자 성향 활용]
-risk_profile은 설명의 강조 순서를 정하는 데만 씁니다.
-CONSERVATIVE이면 최대낙폭과 변동성을 먼저, AGGRESSIVE이면 목표 간극을 먼저 서술합니다.
+[성향 라벨 활용]
+derived.propensity_label은 배분율에서 파생된 값입니다. 설명의 강조 순서를 정하는 데만 씁니다.
+안정형이면 최대 낙폭과 변동성을 먼저, 공격형이면 목표 간극을 먼저 서술합니다.
 성향에 따라 다른 행동을 제안하지 않습니다.
 
 [데이터 기준]
-data_basis.period는 "{시작} ~ {종료}" 형식으로, assumptions는 입력 meta.assumptions를
-순서까지 그대로 복사합니다. 요약하거나 바꾸지 마십시오.
+assumptions_note에는 기준 구간(meta.window.start ~ end), 환노출 여부, meta.data_basis의
+내용을 담습니다. 요약하거나 바꾸지 마십시오.
+meta.options가 있으면 세금 반영 여부(account가 null이면 "세금 미반영"), 예금금리 방식(safe_rate_mode),
+1주 단위 매수(lot_rounding) 여부를 덧붙입니다. gap.basis가 after_tax면 세후 기준임을 밝힙니다.
 
 [어조]
 금융 지식이 없는 사용자를 가정합니다. 전문 용어를 쓸 때는 괄호로 짧게 풀어 씁니다.
@@ -284,163 +283,148 @@ data_basis.period는 "{시작} ~ {종료}" 형식으로, assumptions는 입력 m
 ## 산출물 ③ 예시 응답 3건
 
 티켓이 요구한 세 상황. `text`만 발췌했고 실제 응답은 위 전체 스키마를 따른다.
-나머지 3건은 KAN-13 테스트 세트에서 이어 작성한다.
+**세 예시 모두 자체 계산을 하지 않고, 금액에는 기준 구간 조건절을 붙인다** (KAN-9 규칙 5·6).
+Case A는 `fixtures/case1_response_good.json`과 같고, 승준의 골든 P0(KAN-11 실측)를 입력으로 쓴다.
 
-**세 예시 모두 자체 계산을 하지 않는다.** 등장하는 수치는 전부 입력 JSON에 그대로 있는
-값이다. 덧셈·뺄셈·비율 환산이 들어가면 C4 환각 탐지에 그대로 걸리므로, 예시부터 규칙을
-지켜야 프롬프트가 흔들리지 않는다.
-
-### Case A · 정상 — 목표에 근접, 위험 보통
+### Case A · 정상 — 목표 초과 (골든 P0, 기준 구간 2021-08~2026-07)
 
 ```
-summary       세 주기 모두 목표에 근접했고, 분기별이 285만원 차이로 가장 가깝습니다.
-
-goal_gap      목표 5,000만원 대비 분기별 리밸런싱은 4,715만원으로 285만원(5.7%)
-              부족합니다. 월 납입액을 4만 5천원 늘리면 이 차이를 메울 수 있습니다.
-
-comparison    · 월별   — 누적 거래비용 68만원으로 가장 높습니다.
-                        대신 최대낙폭 -23.8%로 가장 작습니다.
-              · 분기별 — 최종 자산 4,715만원으로 가장 높습니다.
-                        거래비용 24.5만원, 최대낙폭 -25.1%입니다.
-              · 반기별 — 거래비용 12.8만원으로 가장 낮습니다.
-                        대신 최대낙폭 -26.7%로 가장 큽니다.
-
-risk          투자 기간 중 자산이 최대 -25.1% 줄어든 시점이 있었습니다. 같은 폭의
-              하락이 다시 없으리라는 근거는 이 분석에 포함되어 있지 않습니다.
-
-next_action   [MONTHLY_CONTRIBUTION] 월 납입액을 4만 5천원 늘린 조건으로 다시
-              계산해볼 수 있습니다.
-
-data_basis    2019-07-01 ~ 2026-06-30 데이터. 배당 재투자 가정, 거래비용 편도 0.015%
-              반영, 세금 미반영. 과거 데이터 기반 시뮬레이션 결과이며 미래 수익을
-              보장하지 않습니다. 투자 자문이 아닙니다.
+summary        2021-08~2026-07 시장이 그대로 반복된다면 분기별 리밸런싱의 만기 총자산은
+               6,975만원으로 목표 5,000만원을 1,975만원 초과합니다. 세 주기 모두 이 구간에서는
+               목표를 넘겼습니다.
+pros_cons      M  + 최대 이탈 12.3%로 가장 작음    − 누적 거래비용 약 4만원으로 가장 큼
+               Q  + 누적 거래비용 약 2만 6천원     − 최대 낙폭 8.5%로 월별보다 큼
+               H  + 누적 거래비용 약 2만 6천원 최저 − 최대 이탈 23.7%로 가장 큼
+risks          최대 낙폭 구간의 심리적 부담 — 분기별 기준 고점 대비 8.5%까지 줄어든 시점이
+               있었습니다. 같은 폭의 하락이 다시 없으리라는 근거는 이 분석에 없습니다.
+next_actions   [GOAL_AMOUNT] 이 구간에서는 목표를 초과했으므로, 목표 금액을 높인 조건으로
+               다시 계산해볼 수 있습니다.
+assumptions    기준 구간 2021-08~2026-07의 실제 월간 총수익률을 재생. 해외 주식은 환노출(무헤지).
+               안전저축 금리 연 2.96% 고정. 과거 데이터 기반이며 미래 수익을 보장하지 않습니다.
 ```
 
-### Case B · 고위험 — 최대낙폭 -41%, 보수형 사용자
+### Case B · 고위험 — 최대 낙폭 큼, 안정형 라벨
 
 ```
-summary       목표 금액에는 도달했으나, 투자 기간 중 자산이 -41.2%까지 줄어든
-              구간이 있었습니다.
-              ↑ CONSERVATIVE 성향이므로 목표 달성보다 낙폭을 먼저 서술.
-                제안 내용 자체는 성향과 무관하게 동일하다.
-
-risk          투자 기간 중 자산이 고점 대비 41.2% 줄어든 구간이 있었습니다.
-              이 구간에서 투자를 중단했다면 결과는 달라집니다.
-              최대낙폭 이후 회복까지 걸린 기간은 이 분석에 포함되어 있지 않아
-              알 수 없습니다.
-
-next_action   [GOAL_PERIOD] 목표 기간을 60개월보다 늘린 조건으로 다시 계산해볼
-              수 있습니다.
-              ↑ "72개월로"처럼 입력에 없는 기간을 지어내지 않는다. `개월`은
-                단위로 인식되므로 근거 없는 값은 C4가 ERROR로 잡는다.
-              ↑ "안전한 상품으로 바꾸세요"는 adjustable_input에 표현할 자리가
-                없어 구조적으로 불가능하다.
+summary        2019-03~2024-02 시장이 그대로 반복된다면 월별 리밸런싱의 만기 총자산은 …
+               ↑ derived.propensity_label이 안정형이므로 낙폭을 먼저 서술. 제안 내용은 성향과 무관.
+risks          최대 낙폭 — 이 구간에서 자산이 고점 대비 31.2%까지 줄어든 시점이 있었습니다.
+               ↑ "4,000만원이 2,750만원까지"처럼 환산하지 않는다 (C4). % 값을 그대로 인용.
+               ↑ "안정형이신 분에게는 힘드실 겁니다"는 규칙 4 위반 (C5).
+next_actions   [ALLOC_MONTHLY] 월 유입 중 안전 배분을 높인 조건으로 다시 계산해볼 수 있습니다.
+               ↑ "안전한 상품으로 바꾸세요"는 adjustable_input에 자리가 없어 구조적으로 불가능.
 ```
 
-### Case C · 큰 목표 간극 — 목표의 절반에 그친 경우
+### Case C · 큰 목표 간극 — 부족
 
 ```
-summary       세 주기 모두 목표 1억원의 절반 수준인 5,120만원 안팎에 머물렀습니다.
-
-goal_gap      목표 1억원 대비 4,880만원(48.8%) 부족합니다. 이 차이는 리밸런싱
-              주기를 바꾸는 것으로는 좁혀지지 않습니다. 세 주기의 최종 자산은
-              5,080만원에서 5,162만원 사이입니다.
-              ↑ 주기 선택이 무의미한 규모임을 수치로 보여준다.
-                "더 공격적으로 투자하라"는 금지된다.
-
-next_action   [MONTHLY_CONTRIBUTION] 현재 월 납입액 50만원으로는 이 목표에
-              도달하지 못했습니다. 월 71만원을 더 넣은 조건으로 다시 계산해볼
-              수 있습니다.
-              ↑ additional_monthly_required를 증감분 그대로 인용한다.
-                "월 121만원이 필요합니다"는 조정 후 총액이라 C4에 걸린다.
-              [GOAL_AMOUNT] 목표 금액을 낮춘 조건으로도 확인할 수 있습니다.
-              ↑ 낮출 금액을 AI가 정하지 않는다. 입력에 없는 숫자이고, 목표
-                재설정은 사용자 몫이다.
+summary        2021-08~2026-07 시장이 그대로 반복된다면 세 주기 모두 목표 1억 2,000만원에
+               미치지 못합니다. 분기별 기준 부족액은 3,890만원입니다.
+               ↑ shortfall 양수를 "부족"으로. 부호를 바꿔 계산하지 않는다.
+next_actions   [MONTHLY_CONTRIBUTION] 월 납입액을 62만원 더 넣은 조건으로 다시 계산해볼 수
+               있습니다.
+               ↑ gap.extra_monthly_required를 증감분 그대로. "월 122만원이 필요합니다"는 총액이라 C4.
+               [GOAL_HORIZON] 목표 기간을 늘린 조건으로도 확인할 수 있습니다.
+               ↑ gap.extension_status로 분기. BEYOND_DATA_WINDOW면 "보유 데이터 구간 내에서는 도달
+                 시점을 확인할 수 없습니다", BEYOND_INPUT_LIMIT면 months_extension_raw를 인용하되
+                 "입력 가능 범위(12~120개월)를 넘습니다"를 붙이고 그 값을 권유하지 않는다 (C16).
 ```
 
 ---
 
 ## 산출물 ④ 금지 표현 및 검증 체크리스트
 
-티켓의 금지 표현 4개를 검증 가능한 항목으로 펼쳤다. **이 표가 원본이고**, KAN-13 테스트
+KAN-9 §7 금지 규칙 7개를 검증 가능한 항목으로 펼쳤다. **이 표가 원본이고**, KAN-13 테스트
 세트는 이것을 케이스별 실행 관점으로 옮겨 쓴다.
 
-### 금지 표현
+### 금지 표현 (KAN-9 §7 규칙 1~7)
 
-| 티켓 금지 항목 | 위반 예시 | 검증 방법 |
-|---|---|---|
-| 목표 달성 확률 | "70% 확률로 달성", "가능성이 높습니다" | 정규식 `확률\|가능성이\s*(높\|낮)\|확실`. 출력 스키마에 확률 필드가 아예 없다 |
-| 확정적인 미래 수익 표현 | "예상 수익률 8%입니다", "~할 것입니다" | 미래 단정 어미(`것입니다\|겁니다\|됩니다`) + 수익 관련어 동시 출현 |
-| 특정 상품 매수·매도 권유 | "KODEX 200을 매수하세요" | `adjustable_input` enum 검사 + 티커·상품명 사전 매칭 |
-| 계산 결과에 없는 수치·데이터 | 입력에 없는 지표 언급 | 텍스트에서 숫자 추출 → `evidence` 경로의 값과 대조 |
-| 시장 전망 제시 | "내년 금리 인하가 예상되므로" | 미래 시점어 + 거시 지표어 동시 출현 |
-| 자동매매·대출·상품 가입 유도 | "신용거래로 레버리지를" | 금지어 사전 `레버리지\|신용거래\|대출\|자동매매\|가입` |
+| # | KAN-9 규칙 | 위반 예시 | 검증 방법 | 검사 |
+|---|---|---|---|---|
+| 1 | 목표 달성 확률·가능성 % / 단정 예측·수익 보장 | "70% 확률로", "확실히" | 정규식 + 출력 스키마에 확률 필드 부재 | C5 |
+| 2 | 특정 상품·종목 추천, 매매·가입·대출 유도 | "KODEX 200을 매수하세요", "레버리지" | `adjustable_input` enum + 티커·유도어 사전 | C5·C9 |
+| 3 | 입력·계산 결과에 없는 수치 생성 | 입력에 없는 지표 언급 | 텍스트 숫자 → evidence 경로 값과 대조 | C3·C4 |
+| 4 | 파생 성향 라벨을 인격 단정으로 확장 | "공격적인 분이시네요" | 성향 라벨 + 인격어 동시 출현 | C5 |
+| **5** | **과거 구간 재현을 미래 예측으로 서술** | "5년 뒤 7,066만원이 됩니다" | 미래 단정 어미 **+ 조건절 부재** ("반복된다면"·"기준 구간" 없음) | **C12** |
+| **6** | **기준 구간 언급 없이 금액 제시** | 조건절 없는 금액 서술 | `summary`·`assumptions_note`에 `meta.window` 연월 또는 "기준 구간" 필수 | **C11** |
+| 7 | 사용자 지출·소비 습관 평가·훈계 (v0.3) | "낭비가 많으니 아끼세요" | 훈계어 사전 | C5 |
+
+규칙 5·6은 v0.2에서 신설된 것으로, 실제 숫자라 더 확정적으로 들리는 새 리스크에 대응한다.
+**KAN-9가 "KAN-13에 검출 케이스 필수"로 지정**했다.
+
+#### 승준 KAN-12 변경점 (2026-09-03, 실험 306건·편향 점검 근거) — 9/4 반영
+
+| # | 금지 / 필수 | 근거 | 검증 | 검사 |
+|---|---|---|---|---|
+| 8 | 분산·채권 편입이 위험을 낮췄다 | 기준 구간 주식·채권 상관 **+0.26** — 서술이 사실과 반대 | 정규식 | C5 |
+| 9 | 자산군 일반화 ("국내 주식 수익률이 높았다") | KODEX 200 단일. 코스닥150이면 부호 반대 | 자산군+수익 어구, `display_name` 없으면 | C17 (WARN) |
+| 10 | 환율·환헤지 우열 ("환율 덕분에", "환헤지가 유리") | 상품 우열 권유 | 정규식 | C5 |
+| 11 | 값 없는 주기 고정 문구 ("반기가 가장 저렴") · '항상' · "자주 하면 낙폭이 준다" | **계약 v0.2 §6.2 개정 ⑦ (9/4 확정)**: 비용은 `M > Q`만 일반 서술, `Q vs H`는 값 인용 시만. 롤링 138/145·107/145 | 최상급·항상·MDD억제 정규식. 같은 문장에 수치 있으면 허용 | C14 (자동 부분) |
+| 12 | 퇴화(M=Q=H)에서 주기 우열 | 투자 자산 1개·안전 100%면 0원 차이 | fv·cum_cost 전부 동일 + 우열 어구 | C14 |
+| 13 | `cashflow.profile` 원자료 인용 | 민감정보 미저장 원칙 | **스키마에서 제외** → C3 | C3 |
+| 14 | ΔM 단독 제시 (`extra_monthly_ratio` > 1) | X08i: ΔM이 여유자금의 154.6% | 프롬프트 | — |
+| 필수 | 해외 자산 시 환노출 1문장 | US_EQ 환율 기여 +4.66%p | `assets_used`에 `US_`·`foreign_listed` 있으면 ERROR | C8 |
+| 필수 | 상품명은 `assets_used[].display_name` | "국내 주식" → "KODEX 200" | 위 C17 | C17 |
+| 필수 | `vol_annual_pct` 단독 인용 금지 (목표 비중 기준) | 투자 0%도 17.72% | evidence에 vol만 있고 mdd·worst 없으면 | C18 (WARN) |
+| 필수 | 연장 서술은 `extension_status` 분기 | X01f: raw 71인데 상한 120 초과 | status≠OK인데 "N개월 더 … 도달" | C16 |
 
 ### 검증 체크리스트
 
-응답 하나를 받을 때마다 아래를 순서대로 돌린다. 하나라도 실패하면 반려한다.
+응답 하나를 받을 때마다 아래를 순서대로 돌린다. ERROR가 하나라도 있으면 반려한다.
 
 | # | 검사 | 판정 |
 |---|---|---|
-| C1 | 출력이 JSON 스키마를 만족하는가 (`minItems` 포함) | 자동 |
+| C1 | 출력이 JSON 스키마를 만족하는가 (`minItems` 포함) | 자동 (Pydantic) |
 | C2 | 모든 텍스트 필드에 `evidence`가 있는가 | 자동 |
-| C3 | `evidence`의 JSON Pointer가 입력에 실제로 존재하는가 | 자동 |
-| C4 | 텍스트의 숫자가 입력에서 재현 가능한가 (환각 탐지) | 자동 |
-| C4-a | 자체 계산 전면 금지. 납입액 조정은 조정 후 금액이 아니라 증감분(`additional_monthly_required`)으로 표현 | 자동 |
-| C5 | 금지 표현 6종에 걸리지 않는가 | 자동 |
-| C6 | `frequency_comparison`이 세 주기를 중복 없이 다루는가 | 자동 |
-| C7 | `risk_factors` ≥ 1, `next_actions` ≥ 1 인가 | 자동 |
-| C8 | `data_basis`가 입력 `meta`와 일치하는가 | 자동 |
-| C9 | `adjustable_input`이 4개 enum 안에 있는가 | 자동 |
-| C10 | `highlighted_frequency`가 입력 `selected_frequency`와 일치하고, 해당 주기가 `summary` 또는 `goal_gap`에서 언급되는가 | 자동 |
-| C11 | 주기 간 우열을 단정하지 않았는가 | **사람** |
-| C12 | 금융 지식 없는 사용자가 이해할 수 있는가 | **사람** |
-
-C10은 PRD 수용 기준 4("AI 설명에 선택된 리밸런싱 주기 포함")의 구현이다.
-C3·C4가 티켓 수용 기준 "분석 결과에 존재하는 수치만 인용한다"의 구현이다.
+| C3 | `evidence`가 실존하는가 — JSON Pointer는 입력에, `chunk:` 참조는 DB에 | 자동 |
+| C4 | 텍스트의 숫자가 입력에서 재현 가능한가 (환각 탐지). 파생 계산 전면 금지 | 자동 |
+| C5 | 금지 표현 규칙 1·2·4·7에 걸리지 않는가 | 자동 |
+| C6 | `per_period_pros_cons`가 M·Q·H 셋을 다 다루는가 | 자동 |
+| C7 | `risks` ≥ 1, `next_actions` ≥ 1, 각 주기 pros·cons ≥ 1 | 자동 (Pydantic) |
+| C8 | `assumptions_note`에 기준 구간·환노출·`data_basis`가 있는가 | 자동 |
+| C9 | `adjustable_input`이 6개 enum 안에 있는가 | 자동 (Pydantic) |
+| C10 | `highlighted_period`가 `focus`와 일치하고 그 주기가 `summary`에 언급되는가. focus 없으면 WARN | 자동 |
+| **C11** | **`summary`에 기준 구간이 언급되는가 (규칙 6)** | 자동 |
+| **C12** | **조건절 없는 미래 단정 문장이 없는가 (규칙 5)** | 자동 |
+| **C13** | **청크만 근거로 든 문장에 수치가 없는가** (청크는 개념 설명 전용) | 자동 |
+| C14 | 주기 간 우열을 단정하지 않았는가 — 값 없는 고정 문구·'항상'·MDD 억제·퇴화 우열은 **자동**, 그 외 우열 뉘앙스는 **사람** | 자동(부분) + 사람 |
+| C15 | 금융 지식 없는 사용자가 이해할 수 있는가 | **사람** |
+| **C16** | 연장 서술이 `gap.extension_status`와 맞는가 (status≠OK인데 도달 개월 안내 금지) | 자동 |
+| **C17** | 자산군으로 일반화하지 않고 `display_name`으로 불렀는가 | 자동 (WARN) |
+| **C18** | `vol_annual_pct`를 `mdd_pct`·`worst_month_pct`와 함께 인용했는가 | 자동 (WARN) |
 
 ### 수용 기준 대조
 
 | 티켓 수용 기준 | 대응 |
 |---|---|
-| 분석 결과에 존재하는 수치만 인용한다 | C3, C4 |
-| 응답에 리밸런싱 주기·위험 요인·다음 행동이 모두 포함된다 | C1, C6, C7, **C10** |
-| 목표 달성 확률·확정적 투자 조언을 제공하지 않는다 | C5, C11 + 출력 스키마에 확률 필드 부재 |
-| 모든 예시 응답에 데이터 기준 및 가정 유의 문구가 있다 | C8. 예시 3건 모두 `data_basis` 포함 |
+| 분석 결과에 존재하는 수치만 인용한다 | C3, C4, C13 |
+| 응답에 리밸런싱 주기·위험 요인·다음 행동이 모두 포함된다 | C1, C6, C7, C10 |
+| 목표 달성 확률·확정적 투자 조언을 제공하지 않는다 | C5, C12, C14 + 확률 필드 부재 |
+| 모든 예시 응답에 데이터 기준 및 가정 유의 문구가 있다 | C8, C11. 예시 3건 모두 기준 구간 명시 |
 
 ---
 
-## RAG 통합 시 변경 예정 (KAN-17)
+## RAG 통합 반영 현황 (KAN-17)
 
-**아래는 아직 반영하지 않았다.** 지금 문서의 프롬프트·스키마·검증기는 **현재 동작하는 코드와
-일치**하며, 그 일치는 대조 스크립트로 검사하고 있다. RAG 구현(KAN-17) 시 문서와 코드를
-**같이** 바꾼다. 문서만 먼저 바꾸면 검사가 깨진 채로 방치된다.
-
-| 대상 | 변경 내용 |
+| 대상 | 상태 |
 |---|---|
-| 프롬프트 `[사용 가능한 정보]` | "입력 JSON에 있는 값만" → "입력 JSON의 수치 + 검색된 청크의 개념 설명" |
-| 프롬프트 (신규) | "청크는 개념 설명에만 쓰고, 청크에 있는 숫자는 인용하지 않는다" |
-| 출력 스키마 | `evidence`가 `chunk:<id>` 형식을 허용 |
-| 출력 스키마 (신규) | `retrieved_refs` — 문장별 `evidence`에 등장한 청크 id의 합집합 |
-| 검증 C3 | JSON Pointer뿐 아니라 **청크 id가 DB에 실제로 존재하는지** 확인 |
-| 검증 (신규) C13 | **청크를 근거로 든 문장에는 수치를 쓸 수 없다** |
-| 입력 | 검색된 청크 목록이 프롬프트 컨텍스트로 추가됨 |
-
-`retrieved_refs`를 **응답 전체 단위가 아니라 문장별 `evidence`의 합집합**으로 두는 것이
-이 문서의 입장이다. 응답 전체에 청크 목록만 달면 "어느 문장이 어느 청크를 근거로 했나"가
-사라져 C2·C3 검증이 느슨해진다. KAN-17 티켓은 이 단위를 명시하지 않았다.
+| 프롬프트 — 청크는 개념 설명 전용, 청크 숫자 인용 금지 | ✅ 반영 |
+| 출력 `evidence`에 `chunk:<source_id>#<idx>` 허용 | ✅ 반영 |
+| 출력 `retrieved_refs` — 문장별 chunk evidence의 합집합 | ✅ 반영. 불일치 시 WARN |
+| C3 — 청크 실존 확인 | ✅ 형식 검사. DB 조회는 `validate(chunk_exists=…)`로 주입 |
+| C13 — 청크만 근거인 문장에 수치 금지 | ✅ 반영 |
+| `client.explain()`이 검색 청크를 프롬프트에 넣고 `chunk_exists`로 C3 검증 | ✅ **반영** — `knowledge/retrieve.py`. 결과 필드 → 개념 태그(결정론) → 청크. DB 없으면 `knowledge/*.md` 파일 폴백. `tests/test_explain.py` 10/10 |
 
 ## 확정 대기
 
 | 항목 | 담당 | 내용 |
 |---|---|---|
-| `expected_months_to_goal` 산출 | KAN-11 이승준 | PRD "목표 금액까지의 예상 기간"인데 KAN-9·KAN-11 결과 목록에 없음. 추가 요청 필요 |
-| `rebalancing.focus` 필수 여부 | KAN-9 이승준 | KAN-9는 "선택", 이 문서는 "필수". PRD 수용기준 4를 지키려면 필수여야 한다 |
-| 투자 성향 입력 | KAN-9·PRD 충돌 | KAN-9 v0.3은 성향을 **입력받지 않고 배분율에서 파생**한다(경계 30%/60%). PRD 기능1은 "투자 성향을 입력한다"가 필수. **팀 확인 필요** |
-| 현금성 자산군 | KAN-11 이승준 | PRD가 예금을 유니버스의 현금성/무위험 1종으로 포함하라고 한다. `CASH_DEPOSIT` 코드와 고정 수익률 가정 확정 필요 |
-| 계산 가정 문구 | KAN-9 권도윤 | `data_basis.assumptions`에 그대로 노출되므로 표현까지 합의 |
-| 투자 성향 등급 | KAN-9 권도윤 | 3단계 코드값 확정. **PRD 기능1이 투자 성향을 필수 입력으로 두므로 고정값으로 단순화하는 선택지는 없다** |
-| `goal_gap_rate` 화면 노출 | 팀 | 부족률(%)이라 Not To Do의 "달성 가능성 %"는 아니지만, 결과 화면에 %가 뜨면 심사에서 오해 소지가 있다. AI 설명에 쓸지 여부 결정 |
+| `focus` 에코 | KAN-9 이승준·권도윤 | `rebalancing.focus`가 §5 출력에 없다. PRD 수용기준 4를 위해 backend가 `/rag/answer` 요청에 함께 넘기는 것으로 설계. **KAN-9 반영 요청** |
+| `goal_amount` 에코 | KAN-9 이승준·권도윤 | `goal.amount`가 §5 출력에 없어 AI가 "목표 5,000만원"을 말할 근거가 없다. 위와 같이 함께 넘김. **KAN-9 반영 요청** |
+| `evidence` 필드 | 팀 | KAN-9 §7에 없는 KAN-12 추가분. 승인 요청 |
+| `goal_gap_rate` 화면 노출 | — | **해소** — KAN-9 §5에 없는 필드라 제거 |
+| 위험 지표 목록 | — | **해소** — KAN-11 4종(mdd·vol·worst_month·max_drift) 확정. 샤프비율 없음 |
+| 투자 성향 입력 | — | **해소** — KAN-9 확정 ⑪: PRD 문구를 "자금 배분율"로 고친다. 성향은 `derived.propensity_label` 파생값 |
+| 현금성 자산군 `CASH_DEPOSIT` | — | **해소** — KAN-9는 안전저축을 자산군이 아닌 `alloc.*.safe` 배분 계층으로 다룬다. 자산군 추가 철회 |
 
-> 「검증 실패 시 동작」은 KAN-4 오류 규약에서 **1회 재생성 후 `EXPLANATION_REJECTED`**로
-> 확정했고 `client.py`에 구현되어 있다. 대기 목록에서 뺐다.
+> 「검증 실패 시 동작」은 KAN-9 §7("재생성 1회 → 재위반 시 규칙 기반 폴백")과 `client.py`가 일치한다.

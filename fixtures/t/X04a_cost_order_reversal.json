@@ -1,0 +1,448 @@
+{
+  "status": "OK",
+  "meta": {
+    "assumptions_version": "v0.3",
+    "data_version": "2026-09-02",
+    "data_hash": "sha256:fa84100c67a0589aaa3cdb88a13138b87dba6417403f56608680896dbfddb90d",
+    "window": {
+      "start": "2025-08",
+      "end": "2026-07",
+      "months": 12
+    },
+    "start_month": "2026-08",
+    "target_month": "2027-07",
+    "assets_used": [
+      {
+        "code": "KR_EQ",
+        "display_name": "KODEX 200",
+        "instrument": "069500",
+        "tax_class": "domestic_equity",
+        "history": [
+          "2009-02",
+          "2026-07"
+        ]
+      },
+      {
+        "code": "US_EQ",
+        "display_name": "해외 주식 (SPY × USD/KRW)",
+        "instrument": "SPY",
+        "tax_class": "foreign_listed",
+        "history": [
+          "2009-02",
+          "2026-07"
+        ]
+      },
+      {
+        "code": "KR_BOND",
+        "display_name": "KODEX 국고채3년",
+        "instrument": "114260",
+        "tax_class": "domestic_listed_other",
+        "history": [
+          "2009-08",
+          "2026-07"
+        ]
+      }
+    ],
+    "cashflow_source": "none",
+    "series_used": [
+      "monthly_returns",
+      "deposit_rate_monthly"
+    ],
+    "options": {
+      "growth_mode": "flat",
+      "safe_rate_mode": "fixed_avg",
+      "lot_rounding": false,
+      "account": null
+    },
+    "safe_rate_annual_pct": 2.7925,
+    "data_basis": "실제 월간 총수익률 재생 · 기준 구간 2025-08~2026-07 · 환노출(무헤지) · 안전저축 연 2.79%(기준 구간 정기예금 가중평균금리 평균 고정) · 납입 경로: funds.monthly 상수 (상수 반복) · 세금 제외",
+    "warnings": [],
+    "generated_at": "2026-09-02T00:00:00+00:00"
+  },
+  "derived": {
+    "propensity_label": "공격형",
+    "invest_share_overall_pct": 61.6,
+    "plan_excluded_amount": 720000
+  },
+  "cashflow": {
+    "profile": null,
+    "monthly_contribution": [
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000,
+      600000
+    ],
+    "surplus_rate_pct": null,
+    "bonus_share_pct": null,
+    "months_zero": 0,
+    "emergency_filled_month": 0,
+    "growth_effect_pct": null,
+    "surplus_headroom": null
+  },
+  "per_period": {
+    "M": {
+      "trajectory": [
+        {
+          "month": 1,
+          "invest": 7322744,
+          "safe": 3246893,
+          "total": 10569637,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 2,
+          "invest": 8052690,
+          "safe": 3494354,
+          "total": 11547044,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 3,
+          "invest": 9195794,
+          "safe": 3742384,
+          "total": 12938178,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 4,
+          "invest": 9442025,
+          "safe": 3990983,
+          "total": 13433008,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 5,
+          "invest": 10003781,
+          "safe": 4240154,
+          "total": 14243935,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 6,
+          "invest": 11417529,
+          "safe": 4489897,
+          "total": 15907426,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 7,
+          "invest": 12677591,
+          "safe": 4740214,
+          "total": 17417805,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 8,
+          "invest": 11989814,
+          "safe": 4991106,
+          "total": 16980920,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 9,
+          "invest": 14251077,
+          "safe": 5242574,
+          "total": 19493651,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 10,
+          "invest": 16963463,
+          "safe": 5494621,
+          "total": 22458084,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 11,
+          "invest": 17558140,
+          "safe": 5747247,
+          "total": 23305387,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 12,
+          "invest": 15908564,
+          "safe": 6000453,
+          "total": 21909017,
+          "contribution": 600000,
+          "cash_residual": 0
+        }
+      ],
+      "cum_cost": 10734,
+      "risk": {
+        "mdd_pct": 5.99,
+        "vol_annual_pct": 30.27,
+        "worst_month_pct": -11.1,
+        "max_drift_pct": 12.1
+      },
+      "gap": {
+        "fv_total": 21909017,
+        "shortfall": 128090983,
+        "extra_monthly_required": 10453556,
+        "months_extension": 103,
+        "months_extension_raw": 103,
+        "extension_status": "OK",
+        "extra_monthly_ratio": null,
+        "status": "short",
+        "basis": "pre_tax"
+      }
+    },
+    "Q": {
+      "trajectory": [
+        {
+          "month": 1,
+          "invest": 7322802,
+          "safe": 3246893,
+          "total": 10569695,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 2,
+          "invest": 8049741,
+          "safe": 3494354,
+          "total": 11544095,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 3,
+          "invest": 9208614,
+          "safe": 3742384,
+          "total": 12950998,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 4,
+          "invest": 9454906,
+          "safe": 3990983,
+          "total": 13445889,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 5,
+          "invest": 10001713,
+          "safe": 4240154,
+          "total": 14241867,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 6,
+          "invest": 11444229,
+          "safe": 4489897,
+          "total": 15934126,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 7,
+          "invest": 12707147,
+          "safe": 4740214,
+          "total": 17447361,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 8,
+          "invest": 11894284,
+          "safe": 4991106,
+          "total": 16885390,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 9,
+          "invest": 14119826,
+          "safe": 5242574,
+          "total": 19362400,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 10,
+          "invest": 16811010,
+          "safe": 5494621,
+          "total": 22305631,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 11,
+          "invest": 17422148,
+          "safe": 5747247,
+          "total": 23169395,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 12,
+          "invest": 15588469,
+          "safe": 6000453,
+          "total": 21588922,
+          "contribution": 600000,
+          "cash_residual": 0
+        }
+      ],
+      "cum_cost": 7461,
+      "risk": {
+        "mdd_pct": 6.82,
+        "vol_annual_pct": 31.41,
+        "worst_month_pct": -12.24,
+        "max_drift_pct": 13.34
+      },
+      "gap": {
+        "fv_total": 21588922,
+        "shortfall": 128411078,
+        "extra_monthly_required": 10584476,
+        "months_extension": 103,
+        "months_extension_raw": 103,
+        "extension_status": "OK",
+        "extra_monthly_ratio": null,
+        "status": "short",
+        "basis": "pre_tax"
+      }
+    },
+    "H": {
+      "trajectory": [
+        {
+          "month": 1,
+          "invest": 7322802,
+          "safe": 3246893,
+          "total": 10569695,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 2,
+          "invest": 8049741,
+          "safe": 3494354,
+          "total": 11544095,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 3,
+          "invest": 9209072,
+          "safe": 3742384,
+          "total": 12951456,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 4,
+          "invest": 9431214,
+          "safe": 3990983,
+          "total": 13422197,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 5,
+          "invest": 10026031,
+          "safe": 4240154,
+          "total": 14266185,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 6,
+          "invest": 11597021,
+          "safe": 4489897,
+          "total": 16086918,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 7,
+          "invest": 12872797,
+          "safe": 4740214,
+          "total": 17613011,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 8,
+          "invest": 12045389,
+          "safe": 4991106,
+          "total": 17036495,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 9,
+          "invest": 14296146,
+          "safe": 5242574,
+          "total": 19538720,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 10,
+          "invest": 17240185,
+          "safe": 5494621,
+          "total": 22734806,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 11,
+          "invest": 17875350,
+          "safe": 5747247,
+          "total": 23622597,
+          "contribution": 600000,
+          "cash_residual": 0
+        },
+        {
+          "month": 12,
+          "invest": 15828241,
+          "safe": 6000453,
+          "total": 21828694,
+          "contribution": 600000,
+          "cash_residual": 0
+        }
+      ],
+      "cum_cost": 7607,
+      "risk": {
+        "mdd_pct": 7.59,
+        "vol_annual_pct": 32.95,
+        "worst_month_pct": -13.12,
+        "max_drift_pct": 22.63
+      },
+      "gap": {
+        "fv_total": 21828694,
+        "shortfall": 128171306,
+        "extra_monthly_required": 10527715,
+        "months_extension": 101,
+        "months_extension_raw": 101,
+        "extension_status": "OK",
+        "extra_monthly_ratio": null,
+        "status": "short",
+        "basis": "pre_tax"
+      }
+    }
+  },
+  "focus": "Q",
+  "goal_amount": 150000000
+}

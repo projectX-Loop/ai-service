@@ -1,0 +1,6 @@
+{
+  "code": "CALCULATION_FAILED",
+  "message": "계산에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+  "retryable": true,
+  "public_id": "8f3c2a1e-6d4b-4f0a-9c7e-2b1d5e8a9f00"
+}

@@ -1,0 +1,68 @@
+{
+  "goal": {
+    "amount": 50000000,
+    "target_month": "2031-07"
+  },
+  "funds": {
+    "initial": 10000000
+  },
+  "alloc": {
+    "initial": {
+      "invest": 70,
+      "safe": 30,
+      "other": 0
+    },
+    "monthly": {
+      "invest": 50,
+      "safe": 40,
+      "other": 10
+    }
+  },
+  "portfolio": {
+    "assets": [
+      {
+        "code": "KR_EQ",
+        "weight": 40
+      },
+      {
+        "code": "US_EQ",
+        "weight": 40
+      },
+      {
+        "code": "KR_BOND",
+        "weight": 20
+      }
+    ]
+  },
+  "rebalancing": {
+    "focus": "Q"
+  },
+  "cashflow": {
+    "mode": "summary",
+    "income": {
+      "basis": "net",
+      "regular_monthly": 3000000,
+      "bonus": [
+        {
+          "month": 1,
+          "amount": 2000000
+        },
+        {
+          "month": 9,
+          "amount": 500000
+        }
+      ]
+    },
+    "expense": {
+      "fixed_monthly": 1300000,
+      "variable_monthly": 1100000
+    },
+    "debt": {
+      "monthly_payment": 0
+    },
+    "emergency_fund": {
+      "current": 3000000,
+      "target_months": 3
+    }
+  }
+}
