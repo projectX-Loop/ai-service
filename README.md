@@ -138,7 +138,7 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 
 ## 질문답변 스트레치 (`POST /rag/ask` · `/plans/{public_id}/questions`) — KAN-24
 
-9/5 도윤 구두 확인("간단한 채팅이라도 있으면 좋겠다") 후 구현, **KAN-24로 사후 등록**(회의·PRD·기존 티켓엔 없던 범위). `feature/rag-ask` 브랜치(ai-service·frontend 둘 다), `develop` 머지는 별도 지시 대기.
+9/5 도윤 구두 확인("간단한 채팅이라도 있으면 좋겠다") 후 구현, **KAN-24로 사후 등록**(회의·PRD·기존 티켓엔 없던 범위). `feature/rag-ask` 브랜치(ai-service·frontend 둘 다) — **ai-service 쪽은 9/6 저녁 `develop`에 merge 완료**(`f7c66f5`, 브랜치 보호 규칙 없어 승인 절차 없이 진행). frontend 쪽은 PR([#5](https://github.com/projectX-Loop/frontend/pull/5)) 오픈, 리뷰 승인 대기 중.
 
 **내부 스키마 `AskAnswer.claim: Claim`**(9/5 밤, 전체 검토 중 발견·정정). 처음엔 `answer: Claim`이었는데, 내부 응답 `AskResponse.answer`가 `AskAnswer` 자체라 JSON이 `answer.answer`로 중첩돼 헷갈렸다. Spring 쪽 소비자가 아직 없는 지금 고치는 게 제일 싸서 바로 정정 — `claim`으로 이름 바꿈.
 
@@ -148,10 +148,9 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 - **가드레일은 안 바뀜** — history가 있어도 새 답변의 evidence는 여전히 계산 결과 JSON에서만 다시 찾아야 한다(프롬프트에 명시). 이전 답변을 근거로 삼는 것 금지
 - `explain()`/`validate()`와 최대한 재사용: SYSTEM 프롬프트·숫자환각(C4)·evidence(C2·C3)·금지표현(C5) 등은 공유, Explanation 구조 전용 검사(C6·C8·C10·C11)만 제외
 - 검증: `tests/test_ask.py` 13건(멀티턴 4건 포함, 가짜 Gemini) + **실제 Gemini 호출 검증 완료(9/5 밤, 유료 전환 후)** — 단발·멀티턴 둘 다 429 없이 통과, 멀티턴 질문에 모델이 이전 맥락을 정확히 이해하고 답변하는 것 확인. 표본 2건 모두 1회차 실패→2회차 통과(재시도 빈도는 표본이 더 필요)
-- **⚠ 알려진 한계 — 지금 방식은 최종 설계가 아니다.** 매 호출마다 계산 결과 JSON 전체 + 그때까지의 이전 질문·답변 **전부**를 텍스트로 재전송한다. 세션이 길어질수록 호출당 페이로드가 계속 커지고, 세션 전체 토큰 사용량은 턴 수에 거의 제곱으로 늘어난다(각 턴이 이전 걸 전부 반복 전송하므로). 9/7 MVP는 세션이 짧을 걸 가정하고 이렇게 갔지만, 실제로 세션이 길어지면 비용·지연·컨텍스트 과부하 문제가 생긴다. **개선 방향(아직 미구현)**: ① 최근 N턴만 잘라서 보내기(가장 간단) ② Gemini context caching으로 JSON 페이로드를 한 번만 업로드하고 재사용 ③ (KAN-23 완료 후) 서버 저장은 별개 문제 — 저장하더라도 프롬프트에 뭘 넣을지는 ①·②를 어차피 적용해야 함
+- **⚠ 알려진 한계였던 것 — 개선 ①은 이제 구현됨.** 매 호출마다 계산 결과 JSON 전체 + 이전 질문·답변 전부를 재전송하면 세션이 길어질수록 페이로드·토큰이 거의 제곱으로 늘어나는 문제가 있었다. **Spring `ExplanationService`가 최근 5턴만 잘라서 ai-service에 보내도록 구현**(개선 ①, `MAX_HISTORY_TURNS`)해 해소 — `plan_explanation` 자체는 감사 로그로 전부 남기고, AI 호출에 실어 보내는 범위만 제한한다. 개선 ②(Gemini context caching)·③은 여전히 미구현이지만 ①만으로 9/7 MVP 스코프에선 충분
 - **프론트는 `ChatPanel.vue`, plan당 대화 스레드 하나**(9/6 ERD 통합 결정으로 세션 목록·사이드바 설계는 되돌림 — 상세는 `내작업/DEVLOG-ai-service.md` 2026-09-06 절). 스레드 안에서는 진짜 대화형(이전 질문·답변 기억), `plan.public_id` 스코프(로그인 없음), 프론트 `localStorage`(`src/chat/store.ts`)로 저장. **멀티턴 문맥은 이제 서버(Spring)가 `plan_explanation`에서 재구성**(9/6 도윤 `docs/plan-rag-design.md` 결정) — 프론트는 `question`만 보내고 `history`는 안 보냄.
-- **Spring `/plans/{id}/questions` 구현 완료**(`projectX-Backend` `feat/plan-explanation`, PR #11) — `feature/rag-ask`(ai-service·frontend) `develop` merge는 배포 직전으로 대기 중. 3레포 dry-run merge·테스트는 확인 완료(충돌 없음), 실제 서버 3개 동시 기동한 end-to-end 검증은 아직 안 함
-- PR 아직 안 만듦(GitHub이 자동으로 링크 제안하지만 미생성)
+- **Spring `/plans/{id}/questions` 구현 완료**(`projectX-Backend` `feat/plan-explanation`, PR [#11](https://github.com/projectX-Loop/projectX-Backend/pull/11), 리뷰 승인 대기) — ai-service `develop` merge는 완료(`f7c66f5`), frontend는 PR [#5](https://github.com/projectX-Loop/frontend/pull/5)로 리뷰 승인 대기. 3레포 dry-run merge·테스트는 확인 완료(충돌 없음), 실제 서버 3개 동시 기동한 end-to-end 검증은 아직 안 함
 
 ## 미검증 · 다음
 
@@ -161,4 +160,4 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 - docker compose 연동 (도윤 compose 대기)
 - ~~KAN-13 픽스처 2~5~~ — 9/4 입력 4 + 응답 3 작성(승준 실험 payload). 케이스 2 응답만 남음
 - 레포 구조 — 노션 인프라 문서 `contracts/simulator/rag/app` vs 현재 `explainer/` + `engine/`(9/4 승준 엔진 수용). 도윤 확인 후
-- 질문답변 스트레치(KAN-24) — 위 절 참고. 실호출 검증·Spring 구현(PR #11) 완료, 남은 건 `develop` merge(배포 직전)
+- ~~질문답변 스트레치(KAN-24)~~ — 위 절 참고. ai-service `develop` merge 완료. 남은 건 Spring PR #11·frontend PR #5 리뷰 승인(팀 대기)
