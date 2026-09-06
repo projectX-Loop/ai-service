@@ -1798,6 +1798,47 @@
           }
         }
       }
+    },
+    "/rag/ask": {
+      "post": {
+        "summary": "Rag Ask",
+        "description": "단발/멀티턴 질문. body = /rag/answer와 같은 계산 결과 JSON + \"question\" + 선택적 \"history\".\n\n서버는 세션을 저장하지 않는다 — history는 매 호출마다 호출부(Spring)가 들고 있다가 그대로 넘긴다.",
+        "operationId": "rag_ask_rag_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1879,6 +1920,91 @@
         ],
         "title": "AnswerResponse",
         "description": "Spring이 받는 응답. explanation이 null이면 결과 화면만 그리면 된다."
+      },
+      "AskAnswer": {
+        "properties": {
+          "claim": {
+            "$ref": "#/components/schemas/Claim",
+            "description": "질문에 대한 답. 계산 결과 JSON과 지식 청크만 근거로 사용"
+          },
+          "retrieved_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Retrieved Refs",
+            "description": "인용한 지식 청크 참조의 합집합. Explanation.retrieved_refs와 같은 규칙"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "claim",
+          "retrieved_refs"
+        ],
+        "title": "AskAnswer",
+        "description": "단발 질문 답변 (KAN-24 — 9/5 도윤 구두 확인).\n\nExplanation과 같은 evidence 원칙(숫자는 JSON Pointer·개념은 chunk:)을 쓰되\n필드 구조는 없다 — 자유 질문에 대한 답 하나뿐이라 per_period_pros_cons 같은\n고정 절이 없다. 재시도 루프·가드레일은 client.py/guardrail.py에서 Explanation 경로와\n최대한 공유한다.\n\n필드명 `claim`(Claim이 아니라): 내부 응답 `AskResponse.answer`가 이 모델 자체이므로\n`answer: Claim`으로 두면 JSON이 answer.answer로 중첩돼 헷갈린다. Spring 쪽에 아직\n소비자가 없는 지금(9/5) 고치는 게 제일 싸다."
+      },
+      "AskResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "OK | ANSWER_REJECTED | ANSWER_UNAVAILABLE | INVALID_INPUT"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AskAnswer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attempts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempts"
+          },
+          "retrieved_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Retrieved Refs"
+          },
+          "violations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Violations"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "AskResponse",
+        "description": "KAN-24(질문답변 스트레치, 9/5 도윤 구두 확인). AnswerResponse와 같은 상태 모양."
       },
       "Claim": {
         "additionalProperties": false,

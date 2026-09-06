@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field, ValidationError
 from . import calculate as calc
 from . import client as llm
 from .knowledge.retrieve import default_retriever
-from .schema import Explanation, SimulationInput
+from .schema import AskAnswer, Explanation, SimulationInput
 
 log = logging.getLogger("ai-service")
 
@@ -126,6 +126,92 @@ def answer(payload: dict) -> JSONResponse:
         content={
             "status": "OK",
             "explanation": outcome.explanation.model_dump(mode="json"),
+            "attempts": outcome.attempts,
+            "retrieved_refs": outcome.chunk_refs,
+            "violations": [str(v) for v in outcome.report.warnings],
+            "message": None,
+        },
+    )
+
+
+class AskResponse(BaseModel):
+    """KAN-24(질문답변 스트레치, 9/5 도윤 구두 확인). AnswerResponse와 같은 상태 모양."""
+
+    status: str = Field(description="OK | ANSWER_REJECTED | ANSWER_UNAVAILABLE | INVALID_INPUT")
+    answer: AskAnswer | None = None
+    attempts: int | None = None
+    retrieved_refs: list[str] = Field(default_factory=list)
+    violations: list[str] = Field(default_factory=list)
+    message: str | None = None
+
+
+@app.post("/rag/ask", response_model=AskResponse, response_model_exclude_none=False)
+def rag_ask(payload: dict) -> JSONResponse:
+    """단발/멀티턴 질문. body = /rag/answer와 같은 계산 결과 JSON + "question" + 선택적 "history".
+
+    서버는 세션을 저장하지 않는다 — history는 매 호출마다 호출부(Spring)가 들고 있다가 그대로 넘긴다.
+    """
+    question = payload.get("question")
+    if not isinstance(question, str) or not question.strip():
+        return JSONResponse(
+            status_code=422,
+            content={
+                "status": "INVALID_INPUT",
+                "answer": None,
+                "violations": ["question: 비어 있거나 문자열이 아님"],
+                "message": "질문을 입력해 주세요.",
+            },
+        )
+
+    history = payload.get("history") or []
+    result_payload = {k: v for k, v in payload.items() if k not in ("question", "history")}
+    try:
+        source = SimulationInput.model_validate(result_payload)
+    except ValidationError as e:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "status": "INVALID_INPUT",
+                "answer": None,
+                "violations": [f"{'.'.join(str(x) for x in d['loc'])}: {d['msg']}" for d in e.errors()],
+                "message": "시뮬레이션 결과 JSON이 AI 설명 입력 규격과 맞지 않습니다.",
+            },
+        )
+
+    try:
+        outcome = llm.ask(source, question, retriever=_retriever, history=history)
+    except llm.ExplanationRejected as e:
+        log.warning("ask guardrail rejected: %s", e)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ANSWER_REJECTED",
+                "answer": None,
+                "attempts": llm.MAX_ATTEMPTS,
+                "violations": [str(v) for v in e.report.errors],
+                "message": "답변을 생성하지 못했습니다. 다시 질문해 주세요.",
+            },
+        )
+    except llm.ExplanationUnavailable as e:
+        log.error("ask model unavailable: %s", e)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ANSWER_UNAVAILABLE",
+                "answer": None,
+                "violations": [],
+                "message": "지금은 답변할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+            },
+        )
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "OK",
+            # public_api.QuestionResponse.answer는 Claim 그대로다(응답 몸체에 AskAnswer 래퍼를 노출하지 않는다) —
+            # AskAnswer.retrieved_refs는 모델이 자체 보고한 값이라 버리고, 실제 검색된 청크 기준인
+            # outcome.chunk_refs를 아래 top-level retrieved_refs로만 내보낸다.
+            "answer": outcome.answer.claim.model_dump(mode="json"),
             "attempts": outcome.attempts,
             "retrieved_refs": outcome.chunk_refs,
             "violations": [str(v) for v in outcome.report.warnings],

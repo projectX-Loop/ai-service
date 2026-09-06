@@ -21,7 +21,7 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .schema import Derived, Explanation, Meta, Period, PeriodResult
+from .schema import Claim, Derived, Explanation, Meta, Period, PeriodResult
 
 # ─────────────────────────────────────────── 입력 (Kan-9 §2, v0.2 8필드)
 #
@@ -165,7 +165,7 @@ class ExplanationResponse(BaseModel):
     """POST /plans/{public_id}/explanation 200 본문. 항상 200이고 성패는 `status` (KAN-17 규약 그대로).
 
     ai-service 응답에서 `explanation`·`status`·`message` 만 노출한다. `attempts`·`violations`·`retrieved_refs` 는
-    디버깅·저장용(agent_message)이라 브라우저에 주지 않는다.
+    디버깅·저장용(plan_explanation, 9/5 ERD 통합 — 구 agent_message)이라 브라우저에 주지 않는다.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -173,6 +173,48 @@ class ExplanationResponse(BaseModel):
     status: ExplanationStatus
     explanation: Explanation | None = Field(description="status=OK 일 때만 non-null")
     message: str | None = Field(default=None, description="status≠OK 일 때 설명 영역에 보여줄 문구")
+
+
+# ─────────────────────────────────────────── 질문 답변 (KAN-24 — 9/5 도윤 구두 확인)
+
+
+class QuestionHistoryItem(Strict):
+    """세션 내 이전 질문·답변 한 쌍. 서버는 저장하지 않으므로 호출부(Spring/프론트)가 들고 있다가 매번 동봉한다."""
+
+    question: str
+    answer: str
+
+
+class QuestionRequest(Strict):
+    """POST /plans/{public_id}/questions 요청 본문. 서버는 세션을 저장하지 않는다(대화 저장 안 함) —
+    멀티턴이 되려면 history에 이전 질문·답변을 그대로 실어 보낸다. 비어 있으면 단발 질문과 동일하게 동작."""
+
+    question: str = Field(min_length=1, max_length=500, description="자유 질문 텍스트")
+    history: list[QuestionHistoryItem] = Field(
+        default_factory=list,
+        description="이 세션에서 지금까지의 질문·답변. 빈 배열이면 단발 질문(이전 대화 없음)과 동일"
+    )
+
+
+class QuestionStatus(str, Enum):
+    OK = "OK"
+    ANSWER_REJECTED = "ANSWER_REJECTED"           # 가드레일 2회 실패. message만
+    ANSWER_UNAVAILABLE = "ANSWER_UNAVAILABLE"     # 모델 호출 실패. 재시도 버튼
+
+
+class QuestionResponse(BaseModel):
+    """POST /plans/{public_id}/questions 200 본문. ExplanationResponse와 같은 모양(status로 분기).
+
+    ai-service POST /rag/ask 의 answer(schema.Claim) 그대로 노출. attempts·retrieved_refs·violations는
+    디버깅·저장용(plan_explanation, KAN-24 — 9/5 ERD 통합, 구 agent_message)이라 브라우저에 주지 않는다 —
+    ExplanationResponse와 동일한 원칙.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: QuestionStatus
+    answer: Claim | None = Field(description="status=OK 일 때만 non-null")
+    message: str | None = Field(default=None, description="status≠OK 일 때 답변 영역에 보여줄 문구")
 
 
 # ─────────────────────────────────────────── 유니버스 · 샘플
@@ -243,7 +285,7 @@ class ErrorEnvelope(BaseModel):
 
     code: str = Field(
         description="HTTP 층: VALIDATION_ERROR · UNSUPPORTED_FIELD · PLAN_NOT_FOUND · CALCULATION_FAILED · "
-        "EXPLANATION_UNAVAILABLE · SNAPSHOT_MISMATCH. 데이터 의존 오류는 엔진 코드 그대로: INSUFFICIENT_HISTORY · ASSET_NOT_IN_CATALOG"
+        "EXPLANATION_UNAVAILABLE · ANSWER_UNAVAILABLE · SNAPSHOT_MISMATCH. 데이터 의존 오류는 엔진 코드 그대로: INSUFFICIENT_HISTORY · ASSET_NOT_IN_CATALOG"
     )
     message: str = Field(description="사용자에게 보여도 되는 문구")
     retryable: bool = Field(description="true = 재시도 버튼, false = 입력 수정 요구")
@@ -262,5 +304,6 @@ HTTP_ERROR_CODES = {
     "SNAPSHOT_MISMATCH": (500, False),
     "CALCULATION_FAILED": (502, True),
     "EXPLANATION_UNAVAILABLE": (502, True),
+    "ANSWER_UNAVAILABLE": (502, True),
 }
 """코드 → (HTTP, retryable). 노션 §4 오류 봉투 절의 표. 예시 JSON 과 OpenAPI 가 이 표를 따른다."""

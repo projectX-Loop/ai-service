@@ -161,6 +161,43 @@ def build_user_message(source: SimulationInput, chunks: list[dict] | None = None
     return msg
 
 
+def build_ask_message(source: SimulationInput, chunks: list[dict] | None, question: str,
+                      history: list[dict] | None = None) -> str:
+    """단발/멀티턴 질문용 (KAN-24). build_user_message와 같은 페이로드 위에 질문만 얹는다.
+
+    SYSTEM의 규칙(수치 인용·금지 표현·어조)은 설명·질문답변에 공통이라 그대로 쓴다.
+    여기서는 "무엇에 답해야 하는지"만 바꾼다.
+
+    history: [{"question": "...", "answer": "..."}, ...] — 이 세션에서 이미 나눈 대화.
+    Gemini contents 구조(멀티턴 role=user/model)는 건드리지 않는다 — 재시도 루프가 이미 그
+    구조를 쓰고 있어서, 세션 이력까지 role로 쌓으면 재시도 메시지와 얽힌다. 대신 세션 이력을
+    이 프롬프트 텍스트 안에 한 절로 넣는다 — 결과 JSON은 매번 새로 오는데(호출이 독립적이라
+    Gemini가 이전 호출을 기억 못 함) 이력 텍스트만 있으면 문맥은 충분하다.
+    """
+    payload = json.dumps(prompt_payload(source), ensure_ascii=False, indent=2)
+    msg = (
+        "아래는 리밸런싱 시뮬레이션 결과입니다. 이 JSON에 있는 값과, 있다면 아래 지식 청크만 근거로 "
+        "사용자 질문에 답하세요. 근거를 댈 수 없으면 \"제공된 분석 결과로는 알 수 없습니다\"라고 답하세요.\n\n"
+        f"```json\n{payload}\n```"
+    )
+    if chunks:
+        lines = "\n\n".join(f"[chunk:{c['ref']}] ({c.get('title','')} › {c.get('location','')})\n{c['content']}"
+                            for c in chunks)
+        msg += (
+            "\n\n아래는 개념 설명용 지식 청크입니다. 용어를 풀어 쓸 때만 근거로 삼고, "
+            "evidence에 chunk:<ref>로 기록하세요. 청크의 숫자는 인용하지 마세요.\n\n" + lines
+        )
+    if history:
+        lines = "\n\n".join(f"Q: {h['question']}\nA: {h['answer']}" for h in history)
+        msg += (
+            "\n\n아래는 이 세션에서 지금까지 나눈 이전 질문·답변입니다. 문맥 파악에만 쓰고, "
+            "이전 답변 자체를 근거로 삼지 마세요 — 새 답변의 evidence는 반드시 위 결과 JSON(또는 청크)에서 "
+            "다시 찾아 기록해야 합니다.\n\n" + lines
+        )
+    msg += f"\n\n[사용자 질문]\n{question}"
+    return msg
+
+
 def build_retry_message(errors: list[str]) -> str:
     """가드레일 위반 시 재생성 요청."""
     joined = "\n".join(f"- {e}" for e in errors)

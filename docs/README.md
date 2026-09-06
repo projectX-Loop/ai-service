@@ -21,6 +21,12 @@ Jira · Notion   ← 유일한 기준(SSOT). 요구사항·계약·ERD·회의 �
 | [KAN-16-지식저장소.md](KAN-16-지식저장소.md) | KAN-16 | **청킹·임베딩·인덱스 선택 근거**, 검색 결합 | `knowledge/*.py` `db/` `scripts/` | "왜 600자, 왜 HNSW, 청크는 어떻게 고르나" |
 | [KAN-17-내부HTTP계약.md](KAN-17-내부HTTP계약.md) | KAN-17 | **`POST /calculate`(승준 엔진 어댑터)·`POST /rag/answer` 요청·응답 규약**, 예시 JSON 정상·실패, 실측 | `api.py` `client.py` `Dockerfile` | "Spring에서 어떻게 부르나", "status가 뭐가 있나" |
 
+## KAN-24 — 회의·PRD엔 없던 작업 (사후 등록)
+
+**질문답변 스트레치** (`POST /rag/ask` · `/plans/{public_id}/questions`) — 9/5 도윤 구두 확인 후 구현, **KAN-24**로 사후 등록.
+문서는 여기 없고 [`../README.md`](../README.md) 「질문답변 스트레치」 절 하나로 관리한다.
+구현은 `POST /rag/answer`(KAN-17)와 최대한 재사용 — 코드 위치는 그 절 참고.
+
 ## 이 폴더에 없는 것
 
 | 찾는 것 | 어디 |

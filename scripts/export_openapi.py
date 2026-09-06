@@ -64,6 +64,7 @@ def _public_id_param() -> dict:
 def build_public() -> dict:
     """공개 API. 경로·상태 코드·흐름 = 노션 「프론트-백엔드 계약 정리」 §4 (도윤 9/3 14:30)."""
     models = [pub.PlanInputs, pub.PlanResponse, pub.ExplanationResponse,
+              pub.QuestionRequest, pub.QuestionResponse,
               pub.UniverseResponse, pub.SamplesResponse, pub.ErrorEnvelope]
     _, defs = models_json_schema([(m, "validation") for m in models], ref_template=REF)
 
@@ -112,6 +113,26 @@ def build_public() -> dict:
                                  "status 로 분기. OK 면 explanation, 아니면 message"),
                     "404": _err("PLAN_NOT_FOUND", "error.not_found.json"),
                     "502": _err("ai-service 불가·타임아웃", "error.explanation_unavailable.json"),
+                },
+            }
+        },
+        "/plans/{public_id}/questions": {
+            "post": {
+                "summary": "단발 질문 (KAN-24, 9/5 도윤 구두 확인)",
+                "description": (
+                    "재계산 → analyze() 출력 + rebalancing.focus + goal.amount + question → "
+                    "ai-service POST /rag/ask (타임아웃 30초). 이력 없음 — 매 호출이 독립, 대화 저장 안 함.\n\n"
+                    "ai-service 규약대로 **처리가 끝나면 항상 200**, 성패는 `status`. "
+                    "ai-service 불가·타임아웃만 502 ANSWER_UNAVAILABLE (retryable)."
+                ),
+                "parameters": [_public_id_param()],
+                "requestBody": {"required": True, **_body(pub.QuestionRequest, ["questions.request.json"], "자유 질문 텍스트")},
+                "responses": {
+                    "200": _body(pub.QuestionResponse,
+                                 ["questions.response.ok.json", "questions.response.rejected.json", "questions.response.unavailable.json"],
+                                 "status 로 분기. OK 면 answer, 아니면 message"),
+                    "404": _err("PLAN_NOT_FOUND", "error.not_found.json"),
+                    "502": _err("ai-service 불가·타임아웃", "error.answer_unavailable.json"),
                 },
             }
         },

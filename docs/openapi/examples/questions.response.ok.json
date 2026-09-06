@@ -1,0 +1,12 @@
+{
+  "status": "OK",
+  "answer": {
+    "text": "2021-08~2026-07 시장이 그대로 반복된다면 분기별 리밸런싱의 만기 총자산은 6,975만원입니다.",
+    "evidence": [
+      "/meta/window/start",
+      "/meta/window/end",
+      "/per_period/Q/gap/fv_total"
+    ]
+  },
+  "message": null
+}
