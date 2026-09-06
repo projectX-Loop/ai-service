@@ -54,7 +54,7 @@ export GEMINI_API_KEY=...
 
 **pgvector 적재·검색** — [`docs/KAN-16-지식저장소.md`](docs/KAN-16-지식저장소.md) 「실행」 참조. `DATABASE_URL` 없으면 `knowledge/*.md`를 직접 읽는 파일 폴백으로 동작한다.
 
-## 9/5 통합(합숙) 체크리스트 — 도윤 compose 에 붙일 때
+## 통합 검증 체크리스트
 
 ```bash
 docker build -t ai-service .                                   # 9/4 로컬 빌드·기동 검증 (375MB, python:3.14-slim)
@@ -109,7 +109,7 @@ ai-service가 서빙하지 않는다. **Spring DTO의 원본**을 여기서 정�
 docker build -t ai-service . && docker run -p 8000:8000 -e GEMINI_API_KEY=... ai-service
 ```
 
-`docker-compose.ai-service.yml`은 도윤 compose에 붙일 조각(`db` + `ai-service`). 비밀값은 이미지에 없고 전부 환경변수(`GEMINI_API_KEY` `GEMINI_MODEL` `DATABASE_URL` `EMBEDDING_MODEL` `EMBEDDING_DIM`). 배포 시 SSM `/loop/mvp/*`에서 주입.
+`docker-compose.ai-service.yml`은 로컬 pgvector 개발 전용이다. 운영 Compose·서비스 네트워크·비밀 주입은 infrastructure 저장소가 소유한다. 비밀값은 이미지에 포함하지 않으며, 운영 배포에서는 `GEMINI_API_KEY`를 infrastructure의 SSM 동기화로 주입한다.
 
 ## 가드레일이 하는 일
 
@@ -157,7 +157,7 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 - ~~실제 LLM 호출~~ — 9/3 `/rag/answer` 검증 완료(3/3 통과), 9/5 `/rag/ask` 단발·멀티턴 검증 완료(위 절 참고). ~~쿼터~~ — 9/5 밤 유료 등급 전환 완료(하루 20회 제한 해소). ~~케이스 2 응답 픽스처~~ — 9/5 밤 생성 완료(1회 통과). ~~통과율 표본~~ — 9/5 밤 5케이스×2회 실측: **case2가 3회 중 1회 반려**(가장 불안정, 표본 작음). 상세 `fixtures/FIXTURES.md`
 - ~~DB 적재·검색 실행~~ — 9/4 Docker 검증 완료(적재 28청크·검색 5/5). 절차는 docs/KAN-16 「실행」
 - ~~Docker 이미지 재빌드~~ — 9/5 밤 재검증 완료. `/rag/ask` 추가 후에도 빌드·기동·`/health`·`/calculate`·`/rag/ask`(422 및 정상 페이로드) 전부 정상, 골든 P0 값 일치
-- docker compose 연동 (도윤 compose 대기)
+- 운영 Compose 연동은 infrastructure 저장소에서 관리
 - ~~KAN-13 픽스처 2~5~~ — 9/4 입력 4 + 응답 3 작성(승준 실험 payload). 케이스 2 응답만 남음
 - 레포 구조 — 노션 인프라 문서 `contracts/simulator/rag/app` vs 현재 `explainer/` + `engine/`(9/4 승준 엔진 수용). 도윤 확인 후
 - ~~질문답변 스트레치(KAN-24)~~ — 위 절 참고. ai-service `develop` merge 완료. 남은 건 Spring PR #11·frontend PR #5 리뷰 승인(팀 대기)

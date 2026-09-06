@@ -65,10 +65,9 @@ guardrail C3 확장은 `store.chunk_exists(ref)`로 실존을 확인한다.
 
 ## 실행
 
-**로컬 (9/4 검증한 그대로)** — compose 조각은 도윤 레포 상대 경로라 단독 실행은 `docker run`:
+**로컬 (9/4 검증한 그대로)** — `docker-compose.ai-service.yml`은 pgvector 개발 DB만 실행한다. 운영 서비스 구성은 infrastructure 저장소가 소유한다:
 ```bash
-docker run -d --name loop-pgvector -e POSTGRES_DB=loop -e POSTGRES_USER=loop -e POSTGRES_PASSWORD=loop \
-  -p 5432:5432 -v "$PWD/db:/docker-entrypoint-initdb.d:ro" pgvector/pgvector:pg16   # V1__knowledge.sql 자동 적용
+docker compose -f docker-compose.ai-service.yml up -d db  # db/V1__knowledge.sql 자동 적용
 export DATABASE_URL=postgresql://loop:loop@localhost:5432/loop
 ./.venv/bin/python scripts/ingest.py          # 실제 임베딩 적재. 재실행하면 건너뜀
 ./.venv/bin/python scripts/search.py --eval   # 샘플 질의 5건
@@ -76,10 +75,6 @@ export DATABASE_URL=postgresql://loop:loop@localhost:5432/loop
 
 
 ```bash
-# 로컬 Postgres (docker compose)
-docker compose -f docker-compose.ai-service.yml up -d db
-psql "$DATABASE_URL" -f db/V1__knowledge.sql
-
 # 적재 · 검색
 python scripts/ingest.py --dry-run     # 청킹만 확인 (키·DB 불필요)
 python scripts/ingest.py --fake        # 가짜 임베더로 DB 적재 구조 검증

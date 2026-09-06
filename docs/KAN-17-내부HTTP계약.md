@@ -1,7 +1,7 @@
 # KAN-17 — ai-service 내부 HTTP 계약
 
 > 담당 성종현(구현) / 권도윤(계약 확정·Spring 연동) · 선행 KAN-9·12·16 · 후속 백엔드 통합·KAN-14
-> **상태 (2026-09-04 밤 · Jira Blocked = KAN-4·16 실제 연동 게이트)**: `/rag/answer`·`/health` + **`POST /calculate`(승준 엔진 `engine/` 실제 파일, 골든 일치)** 완료. Gemini 실호출·pgvector·Docker 이미지 빌드·기동 전부 실검증. 9/7 배포는 `DATABASE_URL` 비운 **파일 폴백**(도윤 확인 요청 중). 남은 것: 도윤 compose 연동(9/5 합숙, `scripts/smoke.py`로 검증) · 9/6 스냅샷 동결 후 재빌드.
+> **상태 (2026-09-04 밤 · Jira Blocked = KAN-4·16 실제 연동 게이트)**: `/rag/answer`·`/health` + **`POST /calculate`(승준 엔진 `engine/` 실제 파일, 골든 일치)** 완료. Gemini 실호출·pgvector·Docker 이미지 빌드·기동 전부 실검증. 운영 배포는 `DATABASE_URL`을 비운 **파일 폴백**으로 시작한다. 남은 것: infrastructure Compose 통합 smoke 검증 · 스냅샷 동결 후 이미지 재빌드.
 > **상태 (2026-09-03 밤)**: 엔드포인트·Dockerfile·RAG 결합 완료. Gemini 실호출 검증 완료 — 아래 「실측」 절.
 > 요청·응답 JSON은 KAN-4를 따른다. **9/3 도윤 카톡으로 JSON 응답 방식 확정이 성종현 몫**이 되어, 아래는 제안이 아니라 **ai-service 측 확정안**이다. 도윤 통합 중 바뀌면 여기를 먼저 고친다.
 
@@ -279,10 +279,10 @@
 ## 배포
 
 - `Dockerfile` — `python:3.14-slim`(승준 엔진 기준) · `explainer/`·`engine/`·`knowledge/` 복사 · `uvicorn explainer.api:app --port 8000`, healthcheck 포함. 비밀값 미포함
-- `docker-compose.ai-service.yml` — 도윤 compose에 붙일 조각. **9/7 `DATABASE_URL` 비움(파일 폴백)**, `db` 서비스는 pgvector 승격 전까지 미사용
+- 운영 Compose는 infrastructure 저장소가 소유한다. **초기 배포는 `DATABASE_URL`을 비워 파일 폴백**으로 운영하며, 로컬 pgvector는 이 저장소의 개발용 Compose로만 실행한다.
 - **9/4 실제 빌드·기동 검증**: `docker build` → `python:3.14-slim` 375MB, `/health` 엔진 해시 노출, `/calculate` 6ms, 422 경로. 발견: `FROM` 줄 끝 주석이 빌드 실패 → 수정
 - `scripts/smoke.py <base_url> [--llm]` — 통합 스모크 6항목(LLM 없이) + 실호출 1회 옵션. 도윤이 compose 올린 뒤 이것부터 돌린다
-- 환경변수: `GEMINI_API_KEY` `GEMINI_MODEL` `DATABASE_URL` `EMBEDDING_MODEL` `EMBEDDING_DIM`. 배포 시 SSM `/loop/mvp/*`에서 주입
+- 환경변수: `GEMINI_API_KEY` `GEMINI_MODEL` `DATABASE_URL` `EMBEDDING_MODEL` `EMBEDDING_DIM`. 운영 배포의 `GEMINI_API_KEY` 주입은 infrastructure의 SSM 동기화가 담당한다.
 
 ## 수용 기준 대조
 
@@ -292,7 +292,7 @@
 | 응답의 모든 수치가 입력에 존재 (guardrail) | ✅ C4 |
 | 인용 청크가 실제로 존재 | ✅ C3 + `chunk_exists` 주입 |
 | KAN-13 테스트 전부 통과 | ✅ 케이스 1 · **도윤 9/3 14:18 확정: 수용 범위는 케이스 1~5.** 케이스 6(입력 오류)은 KAN-4 API 검증으로 이관(`public_api.py` + `test_public_api.py` 6-a~e) · 케이스 2~5는 승준 골든 P1~P5 대기 |
-| `docker compose up`으로 backend → ai-service 호출 | ❌ 도윤 compose·Docker 환경 대기 |
+| infrastructure Compose로 backend → ai-service 호출 | ⬜ 인프라 배포 시 smoke 검증 |
 
 ## 실측 (2026-09-03 밤, 케이스 1 · gemini-3.6-flash · FileRetriever)
 
