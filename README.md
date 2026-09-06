@@ -140,14 +140,17 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 
 9/5 도윤 구두 확인("간단한 채팅이라도 있으면 좋겠다") 후 구현, **KAN-24로 사후 등록**(회의·PRD·기존 티켓엔 없던 범위). `feature/rag-ask` 브랜치(ai-service·frontend 둘 다), `develop` 머지는 별도 지시 대기.
 
-**내부 스키마 `AskAnswer.claim: Claim`**(9/5 밤, 전체 검토 중 발견·정정). 처음엔 `answer: Claim`이었는데, 내부 응답 `AskResponse.answer`가 `AskAnswer` 자체라 JSON이 `answer.answer`로 중첩돼 헷갈렸다. Spring 쪽 소비자가 아직 없는 지금 고치는 게 제일 싸서 바로 정정 — `claim`으로 이름 바꿈. 공개 계약(`QuestionResponse.answer: Claim`)은 애초에 이 문제 없이 평평해서 영향 없음.
+**내부 스키마 `AskAnswer.claim: Claim`**(9/5 밤, 전체 검토 중 발견·정정). 처음엔 `answer: Claim`이었는데, 내부 응답 `AskResponse.answer`가 `AskAnswer` 자체라 JSON이 `answer.answer`로 중첩돼 헷갈렸다. Spring 쪽 소비자가 아직 없는 지금 고치는 게 제일 싸서 바로 정정 — `claim`으로 이름 바꿈.
+
+**정정(9/6 저녁)**: 위 "공개 계약은 애초에 평평해서 영향 없음"은 **틀린 판단이었다.** 내부 이름만 `claim`으로 바꿨을 뿐 `api.py` 핸들러가 `AskAnswer`(`{claim, retrieved_refs}`)를 그대로 `answer`에 직렬화하고 있어서, 실제 wire 응답은 여전히 `answer.claim.text`로 중첩돼 있었다 — 공개 계약(`public_api.QuestionResponse.answer: Claim`, 즉 `answer.text` 평평)과 실제 구현이 어긋난 상태로 `feature/rag-ask`에 남아 있었던 것. 이걸 검증하는 테스트도 없었다(`tests/test_ask.py`가 `explainer.client.ask()`만 직접 테스트하고 FastAPI 앱을 통한 실제 응답 바디는 확인한 적이 없었음). Spring·프론트 팀 전체 통합 재점검 중 발견 — `api.py`에서 `outcome.answer.claim.model_dump(...)`로 수정, `TestClient` 기반 회귀 테스트 2개 추가(`8a6eb3b`). 이제 Spring·프론트가 원래 짜둔 flat `answer.text` 가정이 실제로 맞다.
 
 - **서버는 세션을 저장하지 않는다** — `agent_message`류 저장 없음(9/7 스코프 밖). 대신 **멀티턴 지원**: `ask()`가 `history`(이전 질문·답변 배열)를 받아 `build_ask_message`가 프롬프트 텍스트에 "이전 대화" 절로 얹는다. Gemini `contents`(role 구조)는 안 건드림 — 가드레일 재시도 루프가 이미 그 구조를 쓰고 있어 엉키는 걸 피함
 - **가드레일은 안 바뀜** — history가 있어도 새 답변의 evidence는 여전히 계산 결과 JSON에서만 다시 찾아야 한다(프롬프트에 명시). 이전 답변을 근거로 삼는 것 금지
 - `explain()`/`validate()`와 최대한 재사용: SYSTEM 프롬프트·숫자환각(C4)·evidence(C2·C3)·금지표현(C5) 등은 공유, Explanation 구조 전용 검사(C6·C8·C10·C11)만 제외
 - 검증: `tests/test_ask.py` 13건(멀티턴 4건 포함, 가짜 Gemini) + **실제 Gemini 호출 검증 완료(9/5 밤, 유료 전환 후)** — 단발·멀티턴 둘 다 429 없이 통과, 멀티턴 질문에 모델이 이전 맥락을 정확히 이해하고 답변하는 것 확인. 표본 2건 모두 1회차 실패→2회차 통과(재시도 빈도는 표본이 더 필요)
 - **⚠ 알려진 한계 — 지금 방식은 최종 설계가 아니다.** 매 호출마다 계산 결과 JSON 전체 + 그때까지의 이전 질문·답변 **전부**를 텍스트로 재전송한다. 세션이 길어질수록 호출당 페이로드가 계속 커지고, 세션 전체 토큰 사용량은 턴 수에 거의 제곱으로 늘어난다(각 턴이 이전 걸 전부 반복 전송하므로). 9/7 MVP는 세션이 짧을 걸 가정하고 이렇게 갔지만, 실제로 세션이 길어지면 비용·지연·컨텍스트 과부하 문제가 생긴다. **개선 방향(아직 미구현)**: ① 최근 N턴만 잘라서 보내기(가장 간단) ② Gemini context caching으로 JSON 페이로드를 한 번만 업로드하고 재사용 ③ (KAN-23 완료 후) 서버 저장은 별개 문제 — 저장하더라도 프롬프트에 뭘 넣을지는 ①·②를 어차피 적용해야 함
-- **프론트는 단발 입력창이 아니라 채팅 목록(사이드바)** — `ChatPanel.vue`, 여러 세션을 만들고 전환. 같은 세션 안에서는 진짜 대화형(이전 질문·답변 기억). 세션은 `plan.public_id` 스코프(로그인 없음), 지금은 프론트 `localStorage`(`src/chat/store.ts`)로만 저장. 목 데이터로 세션 생성·전환·새로고침 유지·**멀티턴 history 실제 전송(브라우저 콘솔로 확인)**까지 완료. Spring `/plans/{id}/questions` 실구현 없음(백엔드 레포가 아직 빈 상태)이라 실서버 연동 미검증 — 상세는 `frontend/README.md`
+- **프론트는 `ChatPanel.vue`, plan당 대화 스레드 하나**(9/6 ERD 통합 결정으로 세션 목록·사이드바 설계는 되돌림 — 상세는 `내작업/DEVLOG-ai-service.md` 2026-09-06 절). 스레드 안에서는 진짜 대화형(이전 질문·답변 기억), `plan.public_id` 스코프(로그인 없음), 프론트 `localStorage`(`src/chat/store.ts`)로 저장. **멀티턴 문맥은 이제 서버(Spring)가 `plan_explanation`에서 재구성**(9/6 도윤 `docs/plan-rag-design.md` 결정) — 프론트는 `question`만 보내고 `history`는 안 보냄.
+- **Spring `/plans/{id}/questions` 구현 완료**(`projectX-Backend` `feat/plan-explanation`, PR #11) — `feature/rag-ask`(ai-service·frontend) `develop` merge는 배포 직전으로 대기 중. 3레포 dry-run merge·테스트는 확인 완료(충돌 없음), 실제 서버 3개 동시 기동한 end-to-end 검증은 아직 안 함
 - PR 아직 안 만듦(GitHub이 자동으로 링크 제안하지만 미생성)
 
 ## 미검증 · 다음
@@ -158,4 +161,4 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 - docker compose 연동 (도윤 compose 대기)
 - ~~KAN-13 픽스처 2~5~~ — 9/4 입력 4 + 응답 3 작성(승준 실험 payload). 케이스 2 응답만 남음
 - 레포 구조 — 노션 인프라 문서 `contracts/simulator/rag/app` vs 현재 `explainer/` + `engine/`(9/4 승준 엔진 수용). 도윤 확인 후
-- 질문답변 스트레치(KAN-24) — 위 절 참고. 실호출 검증 완료, 남은 건 Spring 구현·develop 머지
+- 질문답변 스트레치(KAN-24) — 위 절 참고. 실호출 검증·Spring 구현(PR #11) 완료, 남은 건 `develop` merge(배포 직전)
