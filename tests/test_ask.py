@@ -13,9 +13,12 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from fastapi.testclient import TestClient  # noqa: E402
+
+from explainer import api as api_module  # noqa: E402
 from explainer import client as llm  # noqa: E402
 from explainer.knowledge.retrieve import FileRetriever  # noqa: E402
-from explainer.schema import AskAnswer, SimulationInput  # noqa: E402
+from explainer.schema import AskAnswer, Claim, SimulationInput  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = SimulationInput.model_validate(json.load(open(ROOT / "fixtures/case1_small_gap.json")))
@@ -99,6 +102,24 @@ out8 = llm.ask(SRC, "질문", client=FakeGemini([GOOD]), retriever=retriever, hi
 check("history 빈 배열도 정상 동작", out8.report.passed)
 out8b = llm.ask(SRC, "질문", client=FakeGemini([GOOD]), retriever=retriever)
 check("history 생략(기본 None)도 정상 동작", out8b.report.passed)
+
+# 9) HTTP 계약 회귀 검사 — public_api.QuestionResponse.answer는 Claim 그대로다(schema.AskAnswer
+#    래퍼를 내부적으로 쓰더라도 응답 몸체엔 안 나가야 한다). 9/6 이 계약과 실제 구현이 갈렸던 걸 여기서 잡는다.
+_original_ask = api_module.llm.ask
+api_module.llm.ask = lambda *a, **k: SimpleNamespace(
+    answer=SimpleNamespace(claim=Claim(text="분기별 답변입니다.", evidence=["/per_period/Q/gap/fv_total"])),
+    attempts=1,
+    chunk_refs=[],
+    report=SimpleNamespace(warnings=[]),
+)
+try:
+    http_client = TestClient(api_module.app)
+    resp = http_client.post("/rag/ask", json={**json.loads(SRC.model_dump_json()), "question": "분기별로 하면 얼마?"})
+    body = resp.json()
+    check("HTTP 응답 answer.text로 바로 접근 가능(공개 계약)", body.get("answer", {}).get("text") == "분기별 답변입니다.")
+    check("HTTP 응답에 claim 래퍼가 노출되지 않음", "claim" not in (body.get("answer") or {}))
+finally:
+    api_module.llm.ask = _original_ask
 
 fails = [n for n, ok in results if not ok]
 print(f"\n=== {len(results)-len(fails)}/{len(results)} 통과 ===")

@@ -208,7 +208,10 @@ def rag_ask(payload: dict) -> JSONResponse:
         status_code=200,
         content={
             "status": "OK",
-            "answer": outcome.answer.model_dump(mode="json"),
+            # public_api.QuestionResponse.answer는 Claim 그대로다(응답 몸체에 AskAnswer 래퍼를 노출하지 않는다) —
+            # AskAnswer.retrieved_refs는 모델이 자체 보고한 값이라 버리고, 실제 검색된 청크 기준인
+            # outcome.chunk_refs를 아래 top-level retrieved_refs로만 내보낸다.
+            "answer": outcome.answer.claim.model_dump(mode="json"),
             "attempts": outcome.attempts,
             "retrieved_refs": outcome.chunk_refs,
             "violations": [str(v) for v in outcome.report.warnings],
