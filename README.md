@@ -138,7 +138,7 @@ LLM 응답을 신뢰하지 않고 심문한다. ERROR가 하나라도 있으면 
 
 ## 질문답변 스트레치 (`POST /rag/ask` · `/plans/{public_id}/questions`) — KAN-24
 
-9/5 도윤 구두 확인("간단한 채팅이라도 있으면 좋겠다") 후 구현, **KAN-24로 사후 등록**(회의·PRD·기존 티켓엔 없던 범위). `feature/rag-ask` 브랜치(ai-service·frontend 둘 다) — **ai-service 쪽은 9/6 저녁 `develop`에 merge 완료**(`f7c66f5`, 브랜치 보호 규칙 없어 승인 절차 없이 진행). frontend 쪽은 PR([#5](https://github.com/projectX-Loop/frontend/pull/5)) 오픈, 리뷰 승인 대기 중.
+9/5 도윤 구두 확인("간단한 채팅이라도 있으면 좋겠다") 후 구현, **KAN-24로 사후 등록**(회의·PRD·기존 티켓엔 없던 범위). **9/7 아침 기준 ai-service·백엔드([projectX-Backend](https://github.com/projectX-Loop/projectX-Backend))·프론트 세 레포 전부 `main`에 merge 완료**, `VITE_ENABLE_RAG=true`로 프로덕션 전환까지 끝남 — 배포 준비 완료.
 
 **내부 스키마 `AskAnswer.claim: Claim`**(9/5 밤, 전체 검토 중 발견·정정). 처음엔 `answer: Claim`이었는데, 내부 응답 `AskResponse.answer`가 `AskAnswer` 자체라 JSON이 `answer.answer`로 중첩돼 헷갈렸다. Spring 쪽 소비자가 아직 없는 지금 고치는 게 제일 싸서 바로 정정 — `claim`으로 이름 바꿈.
 
